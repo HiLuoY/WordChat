@@ -1,0 +1,132 @@
+.home {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    
+  }
+  
+  .home-container {
+    position: relative;
+    background-image: url('../assets/background.jpg'); /* 设置背景图片 */
+    display: flex;
+    flex: 1;
+    background-size: cover; /* 使背景图片覆盖整个容器 */
+    background-position: center; /* 使背景图片居中 */
+    background-repeat: no-repeat; /* 防止背景图片重复 */
+    /* padding: 20px;  */
+    /* border-radius: 10px; 可选：添加圆角 */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 可选：添加阴影 */
+    overflow: hidden; /* 确保子元素不会超出容器 */
+  }
+  
+  .white-back {
+    position: absolute;
+    top: 10px; /* 调整顶部间距 */
+    left: 180px; /* 调整左侧间距 */
+    width: calc(100% - 200px); /* 稍小于 home-container 的宽度 */
+    height: calc(100% - 20px); /* 稍小于 home-container 的高度 */
+    justify-content: center; /* 水平居中 */
+    align-items: center;     /* 垂直居中 */
+    background-color: rgba(255, 255, 255, 0.5); /* 使用纯 CSS 创建透明背景 */
+    border-radius: 80px; /* 添加圆角 */
+    z-index: 1; /* 确保白色框在背景图片之上 */
+  
+  }
+  
+  .content-wrapper {
+    position: relative;
+    align-items: center;
+    z-index: 2; /* 确保内容在白色框之上 */
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 100%;
+  }
+  
+  
+
+  .main-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex: 1;
+    text-align: center;
+    z-index: 2; /* 确保内容在白色框之上 */
+    align-items: center;
+    padding: 20px;
+  }
+  
+  .green-block {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #397400;
+    color: white;
+    padding: 20px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+    width: 20%;
+}
+
+.book-info {
+    display: flex;
+    align-items: center;
+}
+
+.book-name {
+    margin-right: 20px;
+}
+
+.book-image {
+    width: 100px;
+    height: auto;
+    margin-left: 20px;
+}
+
+.progress {
+  width: 60%;
+}
+.progress-bar {
+    width: 100%;
+    height: 10px;
+    background-color: #e0e0e0;
+    border-radius: 5px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.progress-fill {
+    height: 100%;
+    background-color: #35AD1A;
+}
+
+.current-book {
+    margin: 20px 0;
+}
+
+.actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.action-button {
+    padding: 10px 20px;
+    background-color: #244900;
+    color: #fff;
+    border-radius: 5px;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
+    text-align: center;
+    width: 150px;
+}
+
+.action-button:hover {
+    background-color: #244900;
+}
+
+.button-text {
+    display: block;
+    margin-top: 5px;
+}

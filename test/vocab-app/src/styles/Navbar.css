@@ -1,0 +1,42 @@
+/* Navbar.css */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #1C3200;
+  padding: 10px 20px;
+  color: white;
+}
+
+.logo {
+  font-size: 24px;
+  font-weight: bold;
+  color: #D2D369;
+}
+
+.nav-links {
+  display: flex;
+}
+
+.nav-link {
+  color: white;
+  text-decoration: none;
+  margin-left: 20px;
+  display: flex;
+  align-items: center;
+}
+
+.icon-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 40px; /* 圆的直径 */
+  height: 40px; /* 圆的直径 */
+  background-color: white; /* 圆的背景颜色 */
+  border-radius: 50%; /* 使容器成为圆形 */
+}
+
+.nav-icon {
+  width: 32px; /* 设置图标的宽度 */
+  height: 32px; /* 设置图标的高度 */
+}
