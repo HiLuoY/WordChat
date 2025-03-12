@@ -22,8 +22,8 @@
   .white-back {
     position: absolute;
     top: 10px; /* 调整顶部间距 */
-    left: 180px; /* 调整左侧间距 */
-    width: calc(100% - 200px); /* 稍小于 home-container 的宽度 */
+    left: 200px; /* 调整左侧间距 */
+    width: calc(100% - 220px); /* 稍小于 home-container 的宽度 */
     height: calc(100% - 20px); /* 稍小于 home-container 的高度 */
     justify-content: center; /* 水平居中 */
     align-items: center;     /* 垂直居中 */
@@ -66,7 +66,7 @@
     padding: 20px;
     border-radius: 20px;
     margin-bottom: 20px;
-    width: 20%;
+    width: 25%;
 }
 
 .book-info {
@@ -81,12 +81,28 @@
 .book-image {
     width: 100px;
     height: auto;
-    margin-left: 20px;
+    margin-left: 30px;
 }
 
 .progress {
-  width: 60%;
+  width: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
+
+.progress-details {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.learned, .total {
+  font-size: 1.0rem;
+  color: #080808;
+}
+
 .progress-bar {
     width: 100%;
     height: 10px;
@@ -107,7 +123,7 @@
 
 .actions {
     display: flex;
-    gap: 10px;
+    gap: 80px;
     margin-top: 20px;
 }
 
@@ -115,7 +131,7 @@
     padding: 10px 20px;
     background-color: #244900;
     color: #fff;
-    border-radius: 5px;
+    border-radius: 10px;
     font-size: 1rem;
     transition: background-color 0.3s ease;
     text-align: center;
@@ -129,4 +145,5 @@
 .button-text {
     display: block;
     margin-top: 5px;
+    color: #DBE1AA;
 }

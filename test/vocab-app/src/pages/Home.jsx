@@ -31,14 +31,15 @@ const Home = () => {
               </div>
             </div>
             <div className="progress">
-              <p>
-                已学习 {user.learnedWords} / 总词数 {user.totalWords}
-              </p>
               <div className="progress-bar">
                 <div
                   className="progress-fill"
                   style={{ width: `${(user.learnedWords / user.totalWords) * 100}%` }}
                 ></div>
+              </div>
+              <div className="progress-details">
+                <div className="learned">已学习: {user.learnedWords}</div>
+                <div className="total">总词数: {user.totalWords}</div>
               </div>
             </div>
             <div className="actions">

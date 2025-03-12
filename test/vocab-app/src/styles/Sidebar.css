@@ -1,8 +1,13 @@
 .sidebar {
-    width: 120px;
+    width: 180px;
     background-color: #376F11;
     padding: 20px;
-  }
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    
+  } 
   
   .sidebar-button {
     display: block;
@@ -11,14 +16,22 @@
     padding: 10px;
     margin: 10px 0;
     text-align: center;
-    border-radius: 5px;
-    transition: background-color 0.3s ease;
+    border-radius: 10px;
+    transition: background-color 0.3s ease, outline 0.3s ease;
+    outline: none; /* 移除默认的聚焦边框 */
+    width: 140px; /* 设置固定宽度 */
+    box-sizing: border-box; /* 确保内边距和边框包含在宽度内 */
   }
   .sidebar-button.active {
     font-weight: bold;
     color: #eff1f3; /* 或其他选中颜色 */
-    background-color: #499417;
+    background-color: black;
+    outline: 4px solid #FFFF99; /* 添加选中时的黄色边框 */
   }
   .sidebar-button:hover {
-    background-color: #499417;
+    background-color: black;
+    outline: 4px solid #FFFF99; /* 添加选中时的黄色边框 */
   }
+  .sidebar-button:focus {
+    outline: 4px solid #FFFF99; /* 添加聚焦时的黄色边框 */
+}

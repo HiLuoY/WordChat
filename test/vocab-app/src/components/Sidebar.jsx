@@ -15,6 +15,9 @@ const Sidebar = () => {
       <Link to="/my-words" className={`sidebar-button ${location.pathname === "/my-words" ? "active" : ""}`}>
         我的单词本
       </Link>
+      <Link to="/chat" className={`sidebar-button ${location.pathname === "/chat" ? "active" : ""}`}>
+        英语圈子
+      </Link>
     </div>
   );
 };
