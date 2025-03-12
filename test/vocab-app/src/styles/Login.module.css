@@ -19,6 +19,7 @@
       url('../assets/loginback.jpg') 
       center/cover fixed;
     position: relative;
+    z-index: 0;
 }
 
 /* 可选：添加半透明遮罩层 */
