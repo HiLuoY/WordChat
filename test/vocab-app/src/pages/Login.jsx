@@ -35,7 +35,7 @@ const Login = () => {
         <div className={styles.loginContainer}>
             <div className={styles.logo}>
                 <div className={styles.logoIcon}>
-                    <span style={{ color: 'white', fontSize: '24px' }}>WC</span>
+                    <span style={{ color: 'white', fontSize: '22px' }}>W&C</span>
                 </div>
                 <h1>欢迎使用 WordChat</h1>
                 <p className={styles.subtitle}>边聊边学 · 轻松掌握外语</p>
