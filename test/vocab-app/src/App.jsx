@@ -2,6 +2,7 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import Learn from "./pages/Learn";
+import Login from './pages/Login';
 // import Books from "./pages/Books";
 // import MyWords from "./pages/MyWords";
 // import Chat from "./pages/Chat";
@@ -13,6 +14,7 @@ const App = () => {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/learn" element={<Learn />} />
+        <Route path="/login" element={<Login />} />
         {/* <Route path="/books" element={<Books />} />
         <Route path="/my-words" element={<MyWords />} />
         <Route path="/chat" element={<Chat />} />
@@ -22,4 +24,4 @@ const App = () => {
   );
 };
 
-export default App;  
+export default App;

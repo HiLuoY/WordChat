@@ -1,0 +1,141 @@
+/* src/Login.module.css */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.loginBody {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(
+        rgba(255, 255, 255, 0.2),
+        rgba(255, 255, 255, 0.2)
+      ),
+      /* 请替换为你自己的图片路径 */
+      url('../assets/loginback.jpg') 
+      center/cover fixed;
+    position: relative;
+}
+
+/* 可选：添加半透明遮罩层 */
+
+.loginBody::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.2); /* 调整透明度让文字更清晰 */
+    z-index: -1;
+}
+
+.loginContainer {
+    background: white;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    width: 400px;
+    transition: transform 0.3s;
+    position: relative;
+    z-index: 1;
+}
+
+.logo {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.logoIcon {
+    width: 60px;
+    height: 60px;
+    background: rgb(28, 50, 0);
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 15px;
+}
+
+.logoIcon img {
+    width: 30px;
+    height: 30px;
+}
+
+h1 {
+    color: #1a1a1a;
+    font-size: 24px;
+    margin-bottom: 5px;
+}
+
+.subtitle {
+    color: #666;
+    font-size: 14px;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.formGroup {
+    margin-bottom: 20px;
+}
+
+input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.3s;
+}
+
+input:focus {
+    outline: none;
+    border-color: rgb(28, 50, 0);
+    box-shadow: 0 0 0 2px rgba(45,140,240,0.1);
+}
+
+.rememberForgot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 15px 0;
+    font-size: 14px;
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    background: rgb(28, 50, 0);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+button:hover {
+    background: rgb(28, 50, 0);
+}
+
+.signupLink {
+    text-align: center;
+    margin-top: 20px;
+    color: #666;
+}
+
+.signupLink a {
+    color: rgb(28, 50, 0);
+    text-decoration: none;
+}
+
+@media (max-width: 480px) {
+    .loginContainer {
+        width: 90%;
+        padding: 25px;
+    }
+}
