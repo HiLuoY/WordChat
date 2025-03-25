@@ -1,65 +1,89 @@
 CREATE DATABASE IF NOT EXISTS elp;
 USE elp;
 
+-- 用户表
 CREATE TABLE IF NOT EXISTS Users (
-    user_id INT AUTO_INCREMENT PRIMARY KEY,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL,
-    nickname VARCHAR(100) NOT NULL,
-    avatar_url VARCHAR(255),
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '用户ID(主键, 自增)',
+    email VARCHAR(255) NOT NULL UNIQUE COMMENT '用户邮箱(唯一)',
+    password_hash VARCHAR(255) NOT NULL COMMENT '用户密码哈希',
+    nickname VARCHAR(100) NOT NULL COMMENT '用户昵称',
+    avatar VARCHAR(255) COMMENT '用户头像URL',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '用户注册时间',
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间'
+) COMMENT='用户信息表';
 
+-- 房间表
+CREATE TABLE IF NOT EXISTS Rooms (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '房间ID(主键, 自增)',
+    room_name VARCHAR(255) NOT NULL UNIQUE COMMENT '房间名称(唯一)',
+    password VARCHAR(255) COMMENT '房间密码(可为空)',
+    owner_id INT UNSIGNED NOT NULL COMMENT '房主ID(外键)',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '房间创建时间',
+    FOREIGN KEY (owner_id) REFERENCES Users(id)
+) COMMENT='房间信息表';
 
-CREATE TABLE Messages (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '消息 id(自增主键)',
-    room_id INT UNSIGNED COMMENT '消息所属房间 id',
-    user_id INT UNSIGNED COMMENT '发送消息的用户 id',
+-- 房间成员表
+CREATE TABLE IF NOT EXISTS RoomMembers (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '成员ID(主键, 自增)',
+    room_id INT UNSIGNED NOT NULL COMMENT '房间ID(外键)',
+    user_id INT UNSIGNED NOT NULL COMMENT '用户ID(外键)',
+    joined_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '加入时间',
+    UNIQUE KEY (room_id, user_id) COMMENT '确保用户在一个房间只能加入一次',
+    FOREIGN KEY (room_id) REFERENCES Rooms(id),
+    FOREIGN KEY (user_id) REFERENCES Users(id)
+) COMMENT='房间成员关系表';
+
+-- 聊天消息表
+CREATE TABLE IF NOT EXISTS Messages (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '消息ID(主键, 自增)',
+    room_id INT UNSIGNED NOT NULL COMMENT '房间ID(外键)',
+    user_id INT UNSIGNED NOT NULL COMMENT '用户ID(外键)',
     message TEXT NOT NULL COMMENT '消息内容',
     message_type ENUM('normal', 'correct') DEFAULT 'normal' COMMENT '消息类型: 普通消息/正确回答',
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '消息发送时间',
-    FOREIGN KEY (room_id) REFERENCES Rooms(room_id),
-    FOREIGN KEY (user_id) REFERENCES Users(user_id)
-) COMMENT='存储消息信息的表';
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '发送时间',
+    FOREIGN KEY (room_id) REFERENCES Rooms(id),
+    FOREIGN KEY (user_id) REFERENCES Users(id)
+) COMMENT='聊天消息表';
 
-CREATE TABLE Words (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '单词 id',
+-- 单词表
+CREATE TABLE IF NOT EXISTS Words (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '单词ID(主键, 自增)',
     word VARCHAR(100) NOT NULL UNIQUE COMMENT '单词内容',
-    meaning TEXT NOT NULL COMMENT '中文释义'
-) COMMENT='存储单词及其中文释义的表';
+    meaning TEXT NOT NULL COMMENT '单词的中文释义'
+) COMMENT='单词信息表';
 
-CREATE TABLE WordsChallenge (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '挑战 id',
-    room_id INT UNSIGNED COMMENT '房间号',
-    word_id INT UNSIGNED COMMENT '当前挑战单词',
+-- 单词挑战表
+CREATE TABLE IF NOT EXISTS WordChallenges (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '挑战ID(主键, 自增)',
+    room_id INT UNSIGNED NOT NULL COMMENT '房间ID(外键)',
+    word_id INT UNSIGNED NOT NULL COMMENT '单词ID(外键)',
     round_number INT UNSIGNED NOT NULL COMMENT '当前轮次',
-    status ENUM('ongoing', 'finished') DEFAULT 'ongoing' COMMENT '挑战状态',
+    status ENUM('ongoing', 'finished') DEFAULT 'ongoing' COMMENT '挑战状态: 进行中/结束',
     started_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '挑战开始时间',
-    FOREIGN KEY (room_id) REFERENCES Rooms(room_id),
+    FOREIGN KEY (room_id) REFERENCES Rooms(id),
     FOREIGN KEY (word_id) REFERENCES Words(id)
-) COMMENT='存储单词挑战信息的表';
+) COMMENT='单词挑战信息表';
 
-
--- 存储用户挑战记录的表
-CREATE TABLE ChallengeAttempts (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '挑战记录唯一标识',
-    challenge_id BIGINT UNSIGNED COMMENT '关联的单词挑战 ID',
-    user_id BIGINT UNSIGNED COMMENT '提交挑战的用户 ID',
+-- 用户挑战记录表
+CREATE TABLE IF NOT EXISTS ChallengeAttempts (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '记录ID(主键, 自增)',
+    challenge_id INT UNSIGNED NOT NULL COMMENT '挑战ID(外键)',
+    user_id INT UNSIGNED NOT NULL COMMENT '用户ID(外键)',
     submitted_word VARCHAR(255) NOT NULL COMMENT '用户提交的单词',
-    is_correct BOOLEAN NOT NULL COMMENT '提交结果是否正确',
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '提交时间（自动记录）',
-    FOREIGN KEY (challenge_id) REFERENCES WordsChallenge(id),
-    FOREIGN KEY (user_id) REFERENCES Users(user_id)
-) COMMENT='用户单词挑战提交记录表';
+    is_correct BOOLEAN NOT NULL COMMENT '是否正确',
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '提交时间',
+    FOREIGN KEY (challenge_id) REFERENCES WordChallenges(id),
+    FOREIGN KEY (user_id) REFERENCES Users(id)
+) COMMENT='用户挑战记录表';
 
--- 存储房间排行榜数据的表
-CREATE TABLE Leaderboard (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '排行榜记录唯一标识',
-    room_id BIGINT UNSIGNED COMMENT '关联的房间 ID',
-    user_id BIGINT UNSIGNED COMMENT '关联的用户 ID',
-    score INT UNSIGNED NOT NULL COMMENT '用户得分（非负整数）',
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
-    FOREIGN KEY (room_id) REFERENCES Rooms(room_id),
-    FOREIGN KEY (user_id) REFERENCES Users(user_id)
-) COMMENT='房间实时排行榜数据表';
+-- 排行榜表
+CREATE TABLE IF NOT EXISTS Leaderboard (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '记录ID(主键, 自增)',
+    room_id INT UNSIGNED NOT NULL COMMENT '房间ID(外键)',
+    user_id INT UNSIGNED NOT NULL COMMENT '用户ID(外键)',
+    score INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '得分',
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY (room_id, user_id) COMMENT '确保每个用户在房间中只有一条记录',
+    FOREIGN KEY (room_id) REFERENCES Rooms(id),
+    FOREIGN KEY (user_id) REFERENCES Users(id)
+) COMMENT='房间排行榜表';
