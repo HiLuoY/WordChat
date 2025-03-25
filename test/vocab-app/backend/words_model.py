@@ -1,6 +1,6 @@
 import pandas as pd
 from database.db_utils import get_db_connection
-
+#向数据库单词表中导入单词
 class WordsImporter:
     @staticmethod
     def import_from_csv(csv_file_path):
@@ -26,7 +26,7 @@ class WordsImporter:
             connection.close()
 
 # CSV 文件路径
-csv_file_path = 'kaoyan.csv'  # 替换为你的 CSV 文件路径
+csv_file_path = 'yasi.csv'  # 替换为你的 CSV 文件路径
 
 # 调用函数导入数据
 WordsImporter.import_from_csv(csv_file_path)
