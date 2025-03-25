@@ -39,3 +39,6 @@ CREATE TABLE WordsChallenge (
     FOREIGN KEY (room_id) REFERENCES Rooms(room_id),
     FOREIGN KEY (word_id) REFERENCES Words(id)
 ) COMMENT='存储单词挑战信息的表';
+
+
+# zyj do
