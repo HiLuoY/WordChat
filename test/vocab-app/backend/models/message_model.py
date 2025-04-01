@@ -113,3 +113,37 @@ class Message:
         except Exception as e:
             logger.error("Failed to delete message for message_id=%s: %s", message_id, str(e), exc_info=True)
             raise  # 将异常抛给调用方
+
+    @staticmethod
+    def get_recent_messages(room_id, limit=50):
+        """
+        获取房间最近消息
+
+        参数:
+            room_id (int): 房间ID
+            limit (int): 返回的消息数量，默认为50
+
+        返回:
+            list: 包含最近消息的列表
+        """
+        # 校验limit参数，防止非法值
+        if not isinstance(limit, int) or limit < 0:
+            raise ValueError("参数 'limit' 必须为非负整数")
+
+        sql = """
+        SELECT m.*, u.nickname 
+        FROM Messages m
+        JOIN Users u ON m.user_id = u.user_id
+        WHERE m.room_id = %s
+        ORDER BY m.timestamp DESC
+        LIMIT %s
+        """
+
+        try:
+            # 假设 query 函数支持预编译语句并安全处理参数
+            result = query(sql, (room_id, limit))
+            return result
+        except Exception as e:
+            # 捕获异常并记录日志，返回空列表以避免程序崩溃
+            print(f"查询房间 {room_id} 的最近消息时发生错误: {e}")
+            return []
