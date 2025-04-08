@@ -123,3 +123,54 @@ class WordChallenge:
         except Exception as e:
             logger.error(f"Failed to get word for challenge {challenge_id}: {str(e)}", exc_info=True)
             raise
+
+    @staticmethod
+    def check_answer(challenge_id, answer):
+        """验证用户答案"""
+        try:
+            # 获取挑战信息
+            challenge = WordChallenge.get_challenge_by_id(challenge_id)
+            if not challenge:
+                return {'correct': False, 'message': '挑战不存在'}
+
+            # 获取正确答案
+            word = WordChallenge.get_challenge_word(challenge_id)
+            if not word:
+                return {'correct': False, 'message': '未找到相关单词'}
+
+            # 验证答案
+            correct_answer = word['word'].lower()
+            user_answer = answer.lower().strip()
+            
+            # 记录答题记录
+            WordChallenge.record_attempt(challenge_id, user_answer, correct_answer == user_answer)
+
+            if correct_answer == user_answer:
+                return {
+                    'correct': True,
+                    'message': '回答正确！',
+                    'word': word['word'],
+                    'meaning': word['meaning']
+                }
+            else:
+                return {
+                    'correct': False,
+                    'message': '回答错误，请继续尝试',
+                    'hint': '提示：' + word['hint'] if 'hint' in word else None
+                }
+
+        except Exception as e:
+            logger.error(f"Failed to check answer for challenge {challenge_id}: {str(e)}", exc_info=True)
+            return {'correct': False, 'message': '验证答案时发生错误'}
+
+    @staticmethod
+    def record_attempt(challenge_id, answer, is_correct):
+        """记录答题记录"""
+        sql = """
+        INSERT INTO ChallengeAttempts (challenge_id, answer, is_correct, attempted_at)
+        VALUES (%s, %s, %s, %s)
+        """
+        try:
+            insert(sql, (challenge_id, answer, is_correct, datetime.utcnow()))
+        except Exception as e:
+            logger.error(f"Failed to record attempt for challenge {challenge_id}: {str(e)}", exc_info=True)

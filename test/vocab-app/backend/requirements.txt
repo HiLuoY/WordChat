@@ -1,2 +1,4 @@
 Flask
 pymysql
+requests
+flask-socketio
