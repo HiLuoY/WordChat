@@ -67,7 +67,7 @@ class User:
         :return: 用户信息字典或None(如果用户不存在)
         """
         sql = """
-        SELECT id, email, nickname, avatar, created_at, updated_at 
+        SELECT id, password_hash, email, nickname, avatar, created_at, updated_at 
         FROM Users 
         WHERE email = %s
         """
