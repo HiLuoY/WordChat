@@ -3,13 +3,13 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 from models.user_model import User
 from database.db_utils import get_db_connection
 from challenges import challenge_bp  # 导入挑战蓝图
+from config import FLASK_CONFIG, SOCKET_CONFIG
 
 app = Flask(__name__)
-app.config['JSON_AS_ASCII'] = False  # 确保 JSON 返回中文字符
-app.config['SECRET_KEY'] = 'your-secret-key'  # 用于session加密
+app.config.update(FLASK_CONFIG)
 
 # 初始化SocketIO
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, **SOCKET_CONFIG)
 
 # 注册蓝图
 app.register_blueprint(challenge_bp)
@@ -66,3 +66,8 @@ def on_submit_answer(data):
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)
+
+
+
+
+#########单词挑战#########

@@ -2,3 +2,6 @@ Flask
 pymysql
 requests
 flask-socketio
+python-socketio
+eventlet
+pytest

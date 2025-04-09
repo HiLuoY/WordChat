@@ -1,5 +1,45 @@
-CREATE DATABASE IF NOT EXISTS elp;
+-- Create database
+CREATE DATABASE IF NOT EXISTS elp CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 USE elp;
+
+-- Create rooms table
+CREATE TABLE IF NOT EXISTS rooms (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create words table
+CREATE TABLE IF NOT EXISTS words (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    word VARCHAR(255) NOT NULL,
+    meaning TEXT NOT NULL,
+    hint TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create challenges table
+CREATE TABLE IF NOT EXISTS word_challenges (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    room_id INT UNSIGNED NOT NULL,
+    word_id INT UNSIGNED NOT NULL,
+    round_number INT UNSIGNED DEFAULT 1,
+    status ENUM('ongoing', 'finished') DEFAULT 'ongoing',
+    started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (room_id) REFERENCES rooms(id),
+    FOREIGN KEY (word_id) REFERENCES words(id)
+);
+
+-- Create challenge attempts table
+CREATE TABLE IF NOT EXISTS challenge_attempts (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    challenge_id INT UNSIGNED NOT NULL,
+    answer VARCHAR(255) NOT NULL,
+    is_correct BOOLEAN NOT NULL,
+    attempted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (challenge_id) REFERENCES word_challenges(id)
+);
 
 -- 用户表
 CREATE TABLE IF NOT EXISTS Users (
@@ -44,13 +84,6 @@ CREATE TABLE IF NOT EXISTS Messages (
     FOREIGN KEY (room_id) REFERENCES Rooms(id),
     FOREIGN KEY (user_id) REFERENCES Users(id)
 ) COMMENT='聊天消息表';
-
--- 单词表
-CREATE TABLE IF NOT EXISTS Words (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '单词ID(主键, 自增)',
-    word VARCHAR(100) NOT NULL UNIQUE COMMENT '单词内容',
-    meaning TEXT NOT NULL COMMENT '单词的中文释义'
-) COMMENT='单词信息表';
 
 -- 单词挑战表
 CREATE TABLE IF NOT EXISTS WordChallenges (
