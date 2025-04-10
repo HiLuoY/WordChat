@@ -7,17 +7,20 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 
 # 导入数据模型
-from models.user_model import User
-from models.room_model import Room
-from models.message_model import Message
-from models.room_member_model import RoomMember
-from models.wordchallenge_models import WordChallenge  # 单词挑战模型
-from models.word_model import Word  # 单词模型
+# from models.user_model import User
+# from models.room_model import Room
+# from models.message_model import Message
+# from models.room_member_model import RoomMember
+# from models.wordchallenge_models import WordChallenge  # 单词挑战模型
+# from models.word_model import Word  # 单词模型
 
 # 导入控制器
 from controllers.room_controller import room_bp  # 房间控制器
 from challenges import challenge_bp  # 单词挑战蓝图
+from controllers.user_manage import user_bp
 
+from ws_events.chat_events import register_chat_events
+from ws_events.room_events import register_room_events
 # ==================== 日志配置 ====================
 import logging
 logging.basicConfig(
@@ -37,6 +40,7 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 # 注册蓝图
 app.register_blueprint(room_bp)  # 注册房间相关路由
 app.register_blueprint(challenge_bp)  # 注册单词挑战相关路由
+app.register_blueprint(user_bp)  #注册用户管理相关路由
 
 # 登录验证装饰器
 def login_required(f):
@@ -63,6 +67,7 @@ def upload_page():
     """显示上传页面"""
     return render_template('upload.html')
 
+<<<<<<< HEAD
 # ==================== 用户认证模块 ====================
 @app.route('/register', methods=['POST'])
 def register():
@@ -78,48 +83,30 @@ def register():
     password = data.get('password')
     nickname = data.get('nickname')
     avatar = data.get('avatar')
+=======
+#--------------注册登录 -----------------
 
-    if not email or not password or not nickname:
-        return jsonify({'message': 'Missing arguments'}), 400
 
-    try:
-        # 密码哈希
-        password_hash = generate_password_hash(password)
-        # 创建用户
-        user_id = User.create_user(email, password_hash, nickname, avatar)
-        return jsonify({'message': 'User created successfully', 'user_id': user_id}), 201
-    except ValueError as e:
-        return jsonify({'message': str(e)}), 400
-    
-@app.route('/login', methods=['POST'])
-def login():
-    """用户登录"""
-    try:
-        data = request.get_json()
-        if not data or 'email' not in data or 'password' not in data:
-            return jsonify({'code': 400, 'message': '缺少必要参数'}), 400
 
-        user = User.get_user_by_email(data['email'])
-        if not user or not check_password_hash(user['password_hash'], data['password']):
-            return jsonify({'code': 401, 'message': '邮箱或密码错误'}), 401
+# --------------用户认证 -----------------
 
-        # 设置会话
-        session['user_id'] = user['id']
-        session.permanent = True
 
-        return jsonify({
-            'code': 200,
-            'message': '登录成功',
-            'data': {
-                'id': user['id'],
-                'nickname': user['nickname']
-            }
-        })
-    except Exception as e:
-        logger.error(f"登录失败: {str(e)}")
-        return jsonify({'code': 500, 'message': '服务器内部错误'}), 500
+
+
+# --------------单词挑战 -----------------
+
+
+
+#--------------房间聊天 -----------------
+
+
+
+
+>>>>>>> d20325968e7258b3b309d677634bcdd75dc104bf
+
 
 # ==================== WebSocket事件处理 ====================
+<<<<<<< HEAD
 @socketio.on('connect')
 def handle_connect():
     """处理客户端连接事件"""
@@ -324,6 +311,10 @@ def on_submit_answer(data):
         logger.error(f"提交答案失败: {str(e)}")
         emit('system_message', {'message': '提交答案失败'})
 
+=======
+register_room_events(socketio)
+register_chat_events(socketio)
+>>>>>>> d20325968e7258b3b309d677634bcdd75dc104bf
 # ==================== 应用启动 ====================
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
