@@ -273,7 +273,7 @@ def handle_message(data):
 
         # 保存消息到数据库
         try:
-            message_id = Message.create_message(room_id, user_id, content)
+            message_id = Message.send_message(room_id, user_id, content)
             logger.info(f"Message saved with id: {message_id}")
         except Exception as e:
             logger.error(f"Failed to save message: {str(e)}", exc_info=True)
@@ -319,3 +319,15 @@ def on_submit_answer(data):
 # ==================== 应用启动 ====================
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+
+
+
+
+
+
+
+
+
+
+
+
