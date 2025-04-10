@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>单词挑战测试页面</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .log {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        button {
+            padding: 8px 15px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        input {
+            padding: 8px;
+            margin: 5px;
+        }
+        .success {
+            color: green;
+        }
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <h1>单词挑战测试页面</h1>
+
+    <!-- 登录部分 -->
+    <div class="section">
+        <h2>1. 登录</h2>
+        <input type="email" id="email" placeholder="邮箱" value="test@example.com">
+        <input type="password" id="password" placeholder="密码" value="test123">
+        <button onclick="login()">登录</button>
+        <div id="loginLog" class="log"></div>
+    </div>
+
+    <!-- 创建房间部分 -->
+    <div class="section">
+        <h2>2. 创建房间</h2>
+        <input type="text" id="roomName" placeholder="房间名称" value="测试房间">
+        <button onclick="createRoom()">创建房间</button>
+        <div id="roomLog" class="log"></div>
+    </div>
+
+    <!-- 创建挑战部分 -->
+    <div class="section">
+        <h2>3. 创建挑战</h2>
+        <input type="number" id="wordId" placeholder="单词ID" value="1">
+        <input type="number" id="timeLimit" placeholder="时间限制(秒)" value="60">
+        <button onclick="createChallenge()">创建挑战</button>
+        <div id="challengeLog" class="log"></div>
+    </div>
+
+    <!-- 提交答案部分 -->
+    <div class="section">
+        <h2>4. 提交答案</h2>
+        <input type="text" id="answer" placeholder="输入答案">
+        <button onclick="submitAnswer()">提交答案</button>
+        <div id="answerLog" class="log"></div>
+    </div>
+
+    <script>
+        let socket;
+        let currentRoomId = null;
+        let currentChallengeId = null;
+        let currentUserId = null;
+
+        // 初始化WebSocket连接
+        function initSocket() {
+            socket = io('http://localhost:5000');
+            
+            socket.on('connect', () => {
+                log('answerLog', 'WebSocket连接成功', 'success');
+            });
+
+            socket.on('answer_result', (data) => {
+                log('answerLog', `收到答案结果: ${JSON.stringify(data)}`, data.correct ? 'success' : 'error');
+            });
+
+            socket.on('disconnect', () => {
+                log('answerLog', 'WebSocket连接断开', 'error');
+            });
+        }
+
+        // 登录
+        async function login() {
+            try {
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                
+                const response = await axios.post('/login', {
+                    email: email,
+                    password: password
+                });
+
+                if (response.data.code === 200) {
+                    currentUserId = response.data.data.id;
+                    log('loginLog', `登录成功，用户ID: ${currentUserId}`, 'success');
+                    initSocket();
+                } else {
+                    log('loginLog', `登录失败: ${response.data.message}`, 'error');
+                }
+            } catch (error) {
+                log('loginLog', `登录错误: ${error.message}`, 'error');
+            }
+        }
+
+        // 创建房间
+        async function createRoom() {
+            try {
+                if (!currentUserId) {
+                    log('roomLog', '请先登录', 'error');
+                    return;
+                }
+
+                const roomName = document.getElementById('roomName').value;
+                
+                const response = await axios.post('/rooms', {
+                    room_name: roomName,
+                    password: null
+                });
+
+                if (response.status === 201) {
+                    currentRoomId = response.data.room_id;
+                    log('roomLog', `创建房间成功，ID: ${currentRoomId}`, 'success');
+                } else {
+                    log('roomLog', `创建房间失败: ${response.data.message}`, 'error');
+                }
+            } catch (error) {
+                log('roomLog', `创建房间错误: ${error.message}`, 'error');
+            }
+        }
+
+        // 创建挑战
+        async function createChallenge() {
+            try {
+                if (!currentRoomId) {
+                    log('challengeLog', '请先创建房间', 'error');
+                    return;
+                }
+
+                const wordId = document.getElementById('wordId').value;
+                const timeLimit = document.getElementById('timeLimit').value;
+                
+                const response = await axios.post('/challenges/create', {
+                    room_id: currentRoomId,
+                    word_id: wordId,
+                    time_limit: timeLimit
+                });
+
+                if (response.data.code === 201) {
+                    currentChallengeId = response.data.data.challenge_id;
+                    log('challengeLog', `创建挑战成功，ID: ${currentChallengeId}`, 'success');
+                    
+                    // 加入房间
+                    socket.emit('join_room', { room_id: currentRoomId });
+                    log('challengeLog', `已加入房间: ${currentRoomId}`, 'success');
+                } else {
+                    log('challengeLog', `创建挑战失败: ${response.data.message}`, 'error');
+                }
+            } catch (error) {
+                log('challengeLog', `创建挑战错误: ${error.message}`, 'error');
+            }
+        }
+
+        // 提交答案
+        function submitAnswer() {
+            if (!currentRoomId || !currentChallengeId) {
+                log('answerLog', '请先创建房间和挑战', 'error');
+                return;
+            }
+
+            const answer = document.getElementById('answer').value;
+            
+            socket.emit('submit_answer', {
+                room_id: currentRoomId,
+                challenge_id: currentChallengeId,
+                answer: answer,
+                user_id: currentUserId
+            });
+
+            log('answerLog', `已提交答案: ${answer}`);
+        }
+
+        // 日志函数
+        function log(elementId, message, type = '') {
+            const logElement = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type ? ` class="${type}"` : '';
+            logElement.innerHTML += `<div${className}>[${timestamp}] ${message}</div>`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+    </script>
+</body>
+</html> 

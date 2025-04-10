@@ -1,6 +1,7 @@
-from database.db_utils import query, insert, update, delete
+#from database.db_utils import query, insert, update, delete
 from datetime import datetime
 import logging
+from database.db_utils import get_db_connection
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -9,24 +10,68 @@ logger = logging.getLogger(__name__)
 class WordChallenge:
     @staticmethod
     def create_challenge(room_id, word_id, round_number=1):
-        """创建新的单词挑战"""
-        sql = """
-        INSERT INTO WordChallenges (room_id, word_id, round_number, status, started_at)
-        VALUES (%s, %s, %s, 'ongoing', %s)
-        """
-        params = (room_id, word_id, round_number, datetime.utcnow())
-        try:
-            challenge_id = insert(sql, params)
-            logger.info(f"Created new word challenge: room_id={room_id}, word_id={word_id}")
-            return challenge_id
-        except Exception as e:
-            logger.error(f"Failed to create word challenge: {str(e)}", exc_info=True)
-            raise
+        """创建挑战（带事务和重试）"""
+        import pymysql
+        
+        logger.info(
+            "[模型层] 创建挑战 | room_id=%s | word_id=%s | round=%s",
+            room_id, word_id, round_number
+        )
 
-    @staticmethod
+        conn = None
+        try:
+            conn = get_db_connection()  # 修改调用名称
+            with conn.cursor() as cursor:
+                # ===== 1. 预检查 =====
+                # 检查房间是否存在
+                cursor.execute("SELECT id FROM rooms WHERE id = %s", (room_id,))
+                if not cursor.fetchone():
+                    logger.error("[模型层] 房间不存在: %s", room_id)
+                    raise ValueError("房间不存在")
+
+                # 检查单词是否存在
+                cursor.execute("SELECT word FROM words WHERE id = %s", (word_id,))
+                if not cursor.fetchone():
+                    logger.error("[模型层] 单词不存在: %s", word_id)
+                    raise ValueError("单词不存在")
+
+                # ===== 2. 插入挑战 =====
+                sql = """
+                INSERT INTO wordchallenges (
+                    room_id, 
+                    word_id, 
+                    round_number, 
+                    status, 
+                    started_at
+                ) VALUES (%s, %s, %s, 'ongoing', %s)
+                """
+                params = (
+                    room_id,
+                    word_id,
+                    round_number,
+                    datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+                )
+                
+                logger.debug("[模型层] 执行SQL: %s | 参数: %s", sql, params)
+                cursor.execute(sql, params)
+                challenge_id = cursor.lastrowid
+                conn.commit()
+
+                logger.info("[模型层] 挑战创建成功: id=%s", challenge_id)
+                return challenge_id
+
+        except pymysql.IntegrityError as e:
+            logger.error("[模型层] 外键约束错误: %s", e.args[1])
+            raise ValueError("数据不完整，请检查房间/单词是否存在")
+        except pymysql.OperationalError as e:
+            logger.error("[模型层] 数据库连接错误: %s", e.args[1])
+            raise
+        finally:
+            if conn:
+                conn.close()   
     def get_challenge_by_id(challenge_id):
         """根据ID获取挑战信息"""
-        sql = "SELECT * FROM WordChallenges WHERE id = %s"
+        sql = "SELECT * FROM wordchallenges WHERE id = %s"
         try:
             result = query(sql, (challenge_id,))
             return result[0] if result else None

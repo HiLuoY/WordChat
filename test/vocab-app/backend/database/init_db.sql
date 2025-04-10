@@ -3,44 +3,6 @@ CREATE DATABASE IF NOT EXISTS elp CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_
 
 USE elp;
 
--- Create rooms table
-CREATE TABLE IF NOT EXISTS rooms (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
--- Create words table
-CREATE TABLE IF NOT EXISTS words (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    word VARCHAR(255) NOT NULL,
-    meaning TEXT NOT NULL,
-    hint TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
--- Create challenges table
-CREATE TABLE IF NOT EXISTS word_challenges (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    room_id INT UNSIGNED NOT NULL,
-    word_id INT UNSIGNED NOT NULL,
-    round_number INT UNSIGNED DEFAULT 1,
-    status ENUM('ongoing', 'finished') DEFAULT 'ongoing',
-    started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (room_id) REFERENCES rooms(id),
-    FOREIGN KEY (word_id) REFERENCES words(id)
-);
-
--- Create challenge attempts table
-CREATE TABLE IF NOT EXISTS challenge_attempts (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    challenge_id INT UNSIGNED NOT NULL,
-    answer VARCHAR(255) NOT NULL,
-    is_correct BOOLEAN NOT NULL,
-    attempted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (challenge_id) REFERENCES word_challenges(id)
-);
-
 -- 用户表
 CREATE TABLE IF NOT EXISTS Users (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '用户ID(主键, 自增)',
@@ -85,6 +47,15 @@ CREATE TABLE IF NOT EXISTS Messages (
     FOREIGN KEY (user_id) REFERENCES Users(id)
 ) COMMENT='聊天消息表';
 
+-- 单词表
+CREATE TABLE IF NOT EXISTS Words (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '单词ID(主键, 自增)',
+    word VARCHAR(255) NOT NULL COMMENT '单词',
+    meaning TEXT NOT NULL COMMENT '含义',
+    hint TEXT COMMENT '提示',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间'
+) COMMENT='单词表';
+
 -- 单词挑战表
 CREATE TABLE IF NOT EXISTS WordChallenges (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '挑战ID(主键, 自增)',
@@ -102,9 +73,9 @@ CREATE TABLE IF NOT EXISTS ChallengeAttempts (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '记录ID(主键, 自增)',
     challenge_id INT UNSIGNED NOT NULL COMMENT '挑战ID(外键)',
     user_id INT UNSIGNED NOT NULL COMMENT '用户ID(外键)',
-    submitted_word VARCHAR(255) NOT NULL COMMENT '用户提交的单词',
+    answer VARCHAR(255) NOT NULL COMMENT '用户答案',
     is_correct BOOLEAN NOT NULL COMMENT '是否正确',
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '提交时间',
+    attempted_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '答题时间',
     FOREIGN KEY (challenge_id) REFERENCES WordChallenges(id),
     FOREIGN KEY (user_id) REFERENCES Users(id)
 ) COMMENT='用户挑战记录表';
