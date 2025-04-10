@@ -44,7 +44,7 @@ class Room:
         :return: 房间信息字典或None(如果房间不存在)
         """
         sql = """
-        SELECT id, room_name, password, owner_id, created_at 
+        SELECT id, password, room_name, password, owner_id, created_at 
         FROM Rooms 
         WHERE id = %s
         """
@@ -164,7 +164,7 @@ class Room:
         """
         offset = (page - 1) * per_page
         sql = """
-        SELECT id, room_name, owner_id, created_at 
+        SELECT id, password, room_name, owner_id, created_at 
         FROM Rooms 
         ORDER BY created_at DESC 
         LIMIT %s OFFSET %s

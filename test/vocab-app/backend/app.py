@@ -28,8 +28,8 @@ logger = logging.getLogger("SocketIO")  # 全局日志记录器
 
 # ==================== 应用初始化 ====================
 app = Flask(__name__)
-app.secret_key = secrets.token_hex(32)  # 会话加密密钥
-app.config['SESSION_TYPE'] = 'filesystem'  # 会话存储方式
+app.secret_key = secrets.token_hex(32)
+app.config['SESSION_TYPE'] = 'filesystem'
 
 # 初始化WebSocket
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
@@ -62,6 +62,24 @@ def test():
 def upload_page():
     """显示上传页面"""
     return render_template('upload.html')
+
+#--------------注册登录 -----------------
+
+
+
+# --------------用户认证 -----------------
+
+
+
+
+# --------------单词挑战 -----------------
+
+
+
+#--------------房间聊天 -----------------
+
+
+
 
 # ==================== 用户认证模块 ====================
 @app.route('/register', methods=['POST'])
@@ -118,6 +136,8 @@ def login():
     except Exception as e:
         logger.error(f"登录失败: {str(e)}")
         return jsonify({'code': 500, 'message': '服务器内部错误'}), 500
+
+
 
 # ==================== WebSocket事件处理 ====================
 @socketio.on('connect')
