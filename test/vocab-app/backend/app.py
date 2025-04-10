@@ -1,35 +1,78 @@
-import json
-import datetime
+# ==================== 导入依赖 ====================
 from flask import Flask, request, jsonify, session, render_template
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from datetime import datetime
 import secrets
+from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
+
+# 导入数据模型
 from models.user_model import User
 from models.room_model import Room
 from models.message_model import Message
 from models.room_member_model import RoomMember
-from werkzeug.security import generate_password_hash, check_password_hash
-import redis
-from pytz import timezone
+from models.wordchallenge_models import WordChallenge  # 单词挑战模型
+from models.word_model import Word  # 单词模型
 
+# 导入控制器
+from controllers.room_controller import room_bp  # 房间控制器
+from challenges import challenge_bp  # 单词挑战蓝图
+
+# ==================== 日志配置 ====================
+import logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger("SocketIO")  # 全局日志记录器
+
+# ==================== 应用初始化 ====================
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(32)
 app.config['SESSION_TYPE'] = 'filesystem'
 
-# 初始化SocketIO（使用eventlet异步模式）
+# 初始化WebSocket
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
-# Redis配置
-redis_client = redis.StrictRedis(host='localhost', port=6379, db=0, decode_responses=True)
+# 注册蓝图
+app.register_blueprint(room_bp)  # 注册房间相关路由
+app.register_blueprint(challenge_bp)  # 注册单词挑战相关路由
 
-# ==================== HTTP路由部分 ====================
+# 登录验证装饰器
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return jsonify({'code': 401, 'message': '请先登录'}), 401
+        return f(*args, **kwargs)
+    return decorated_function
 
+# ==================== 基础路由 ====================
 @app.route('/')
 def index():
+    """首页"""
     return render_template('chat.html')
 
+@app.route('/test')
+def test():
+    """测试页面路由"""
+    return render_template('test.html')
+
+@app.route('/upload')
+def upload_page():
+    """显示上传页面"""
+    return render_template('upload.html')
+
+# ==================== 用户认证模块 ====================
 @app.route('/register', methods=['POST'])
 def register():
+    """用户注册
+    请求体:
+        email: 用户邮箱
+        password: 用户密码
+        nickname: 用户昵称
+        avatar: 用户头像(可选)
+    """
     data = request.get_json()
     email = data.get('email')
     password = data.get('password')
@@ -50,223 +93,229 @@ def register():
     
 @app.route('/login', methods=['POST'])
 def login():
-    data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
-
-    if not email or not password:
-        return jsonify({'message': 'Missing arguments'}), 400
-
+    """用户登录"""
     try:
-        user_info = User.get_user_by_email(email)
-        if user_info and check_password_hash(user_info["password_hash"], password):
-            session['user_id'] = user_info['id']
-            session['nickname'] = user_info['nickname']
-            session.permanent = True  # 设置会话为永久会话
-            return jsonify({'message': 'Login successful'}), 200
-        else:
-            return jsonify({'message': 'Invalid credentials'}), 401
-    except Exception as e:
-        return jsonify({'message': str(e)}), 500
+        data = request.get_json()
+        if not data or 'email' not in data or 'password' not in data:
+            return jsonify({'code': 400, 'message': '缺少必要参数'}), 400
 
-# ---------- 房间管理 ----------
-@app.route('/rooms', methods=['GET'])
-def get_rooms():
-    """获取房间列表"""
-    try:
-        page = int(request.args.get('page', 1))
-        per_page = int(request.args.get('per_page', 10))
-        rooms = Room.list_rooms(page, per_page)
-        # 添加是否有密码的信息
-        rooms_with_password_info = []
-        for room in rooms:
-            room_with_password_info = room.copy()
-            room_with_password_info['has_password'] = room.get('password') is not None
-            rooms_with_password_info.append(room_with_password_info)
-        return jsonify({'rooms': rooms_with_password_info}), 200
-    except Exception as e:
-        return jsonify({'message': str(e)}), 500
+        user = User.get_user_by_email(data['email'])
+        if not user or not check_password_hash(user['password_hash'], data['password']):
+            return jsonify({'code': 401, 'message': '邮箱或密码错误'}), 401
 
-@app.route('/rooms', methods=['POST'])
-def create_room():
-    """创建新房间"""
-    user_id = session.get('user_id')
-    if not user_id:
-        return jsonify({'message': '请先登录'}), 401
-    
-    data = request.get_json()
-    room_name = data.get('room_name')
-    password = data.get('password', None)
-    
-    if not room_name:
-        return jsonify({'message': '房间名不能为空'}), 400
-    
-    try:
-        room_id = Room.create_room(room_name, session['user_id'], password)
-        # 自动将创建者加入房间
-        RoomMember.add_member(room_id, session['user_id'])
+        # 设置会话
+        session['user_id'] = user['id']
+        session.permanent = True
+
         return jsonify({
-            'message': '房间创建成功',
-            'room_id': room_id
-        }), 201
-    except ValueError as e:
-        return jsonify({'message': str(e)}), 400
+            'code': 200,
+            'message': '登录成功',
+            'data': {
+                'id': user['id'],
+                'nickname': user['nickname']
+            }
+        })
     except Exception as e:
-        return jsonify({'message': str(e)}), 500
+        logger.error(f"登录失败: {str(e)}")
+        return jsonify({'code': 500, 'message': '服务器内部错误'}), 500
 
-@app.route('/rooms/<int:room_id>/leave', methods=['POST'])
-def leave_room(room_id):
-    """离开房间"""
-    if 'user_id' not in session:
-        return jsonify({'message': '请先登录'}), 401
-    
-    try:
-        RoomMember.remove_member(room_id, session['user_id'])
-        
-        # 通知房间成员
-        socketio.emit('member_left', {
-            'user_id': session['user_id'],
-            'nickname': session['nickname'],
-            'room_id': room_id,
-            'timestamp': datetime.now().isoformat()
-        }, room=str(room_id))
-        
-        return jsonify({'message': '已离开房间'}), 200
-    except Exception as e:
-        return jsonify({'message': str(e)}), 500
-
-@app.route('/rooms/<int:room_id>/members', methods=['GET'])
-def get_room_members(room_id):
-    """获取房间成员列表"""
-    try:
-        members = RoomMember.get_members(room_id)
-        return jsonify({'members': members}), 200
-    except Exception as e:
-        return jsonify({'message': str(e)}), 500
-
-@app.route('/rooms/<int:room_id>/messages', methods=['GET'])
-def get_room_messages(room_id):
-    """获取房间历史消息"""
-    try:
-        # 优先从Redis中读取消息
-        redis_key = f"room:{room_id}:messages"
-        messages = redis_client.lrange(redis_key, 0, -1)
-        if messages:
-            messages = [json.loads(msg) for msg in messages]
-        else:
-            # 如果Redis中没有消息，则从数据库中读取
-            messages = Message.get_messages_by_room(room_id)
-            # 将消息存储到Redis
-            for msg in messages:
-                redis_client.rpush(redis_key, json.dumps(msg))
-            redis_client.expire(redis_key, 3600)  # 设置过期时间为1小时
-
-        return jsonify({'messages': messages}), 200
-    except Exception as e:
-        return jsonify({'message': str(e)}), 500
-
-# ==================== WebSocket部分 ====================
+# ==================== WebSocket事件处理 ====================
 @socketio.on('connect')
 def handle_connect():
-    """WebSocket连接建立"""
-    if 'user_id' in session:
-        print(f"用户 {session['nickname']} 已连接")
-    else:
-        emit('error', {'message': '未认证的连接'})
-
-@socketio.on('get_room_info')
-def handle_get_room_info(data):
-    """获取房间信息"""
-    room_id = data.get('room_id')
-    if not room_id:
-        emit('error', {'message': '房间ID不能为空'})
-        return
-
+    """处理客户端连接事件"""
     try:
-        room = Room.get_room_by_id(room_id)
-        if not room:
-            emit('error', {'message': '房间不存在'})
-            return
-
-        has_password = room.get('password') is not None
-        emit('room_info', {'has_password': has_password})
+        logger.info(f"客户端连接成功 | SID={request.sid}")
+        emit('connection_response', {'status': 'connected'})
     except Exception as e:
-        emit('error', {'message': str(e)})
+        logger.error(f"连接事件处理失败: {str(e)}", exc_info=True)
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    """处理客户端断开连接事件（修正参数问题）"""
+    try:
+        logger.info(f"客户端断开连接 | SID={request.sid}")
+    except Exception as e:
+        logger.error(f"断开连接事件处理失败: {str(e)}", exc_info=True)
 
 @socketio.on('join_room')
 def handle_join_room(data):
-    """加入聊天房间"""
-    room_id = data.get('room_id')
-    password = data.get('password', None)
-
-    if 'user_id' not in session:
-        emit('error', {'message': '请先登录'})
-        return
-
+    """处理加入房间事件"""
     try:
-        room = Room.get_room_by_id(room_id)
-        if not room:
-            emit('error', {'message': '房间不存在'})
+        if 'user_id' not in session:
+            logger.warning("User not logged in when trying to join room")
+            emit('system_message', {'message': '请先登录'})
             return
 
-        # 检查密码
-        if room.get('password'):
-            if not password or room['password'] != password:
-                emit('error', {'message': '房间密码错误'})
-                return
+        room_id = data.get('room_id')
+        if not room_id:
+            logger.warning("Room ID not provided")
+            emit('system_message', {'message': '房间ID不能为空'})
+            return
 
-        # 如果用户不是房间成员，则加入房间
-        if not RoomMember.is_member(room_id, session['user_id']):
-            RoomMember.add_member(room_id, session['user_id'])
+        logger.info(f"User {session['user_id']} attempting to join room {room_id}")
 
-        join_room(room_id)
-        emit('system_message', {
-            'message': f"{session['nickname']} 进入了房间",
-            'timestamp': datetime.now().isoformat()
-        }, room=str(room_id))
-    except ValueError as e:
-        emit('error', {'message': str(e)})
+        # 获取房间信息
+        room = Room.get_room_by_id(room_id)
+        if not room:
+            logger.warning(f"Room {room_id} does not exist")
+            emit('system_message', {'message': '房间不存在'})
+            return
+
+        # 获取用户信息
+        user = User.get_user_by_id(session['user_id'])
+        if not user:
+            logger.error(f"User {session['user_id']} not found")
+            emit('system_message', {'message': '用户不存在'})
+            return
+
+        try:
+            # 将用户添加到房间成员中
+            if not RoomMember.is_member(room_id, session['user_id']):
+                RoomMember.add_member(room_id, session['user_id'])
+                logger.info(f"Added user {session['user_id']} to room {room_id}")
+
+            # 加入Socket.io房间
+            join_room(str(room_id))
+            logger.info(f"User {session['user_id']} joined socket room {room_id}")
+
+            # 判断是否是房主
+            is_owner = room['owner_id'] == session['user_id']
+
+            # 发送加入成功消息
+            emit('room_joined', {
+                'room_id': room_id,
+                'room_name': room['room_name'],
+                'is_owner': is_owner
+            })
+            logger.info(f"Sent room_joined event to user {session['user_id']}")
+
+            # 广播用户加入消息
+            emit('system_message', {
+                'message': f"{user['nickname']} 加入了房间"
+            }, room=str(room_id))
+            logger.info(f"Broadcast join message for user {user['nickname']}")
+
+        except Exception as e:
+            logger.error(f"Error while joining room: {str(e)}", exc_info=True)
+            emit('system_message', {'message': '加入房间失败，请重试'})
+            return
+
     except Exception as e:
-        emit('error', {'message': str(e)})
+        logger.error(f"加入房间失败: {str(e)}", exc_info=True)
+        emit('system_message', {'message': '加入房间失败，请重试'})
 
-# 处理聊天消息
-@socketio.on('send_message')
-def handle_send_message(data):
-    """处理聊天消息"""
-    room_id = data.get('room_id')
-    content = data.get('content')
+@socketio.on('leave_room')
+def handle_leave_room(data):
+    """处理离开房间事件"""
+    try:
+        if 'user_id' not in session:
+            emit('system_message', {'message': '请先登录'})
+            return
 
-    if 'user_id' not in session:
-        emit('error', {'message': '请先登录'})
-        return
+        room_id = data.get('room_id')
+        if not room_id:
+            emit('system_message', {'message': '房间ID不能为空'})
+            return
 
-    if not RoomMember.is_member(room_id, session['user_id']):
-        emit('error', {'message': '无权在此房间发言'})
-        return
+        # 获取用户信息
+        user = User.get_user_by_id(session['user_id'])
+        if not user:
+            emit('system_message', {'message': '用户不存在'})
+            return
 
-    # 保存到数据库
-    message_id = Message.send_message(
-        room_id=room_id,
-        user_id=session['user_id'],
-        message=content,
-        message_type='normal'
-    )
+        # 离开Socket.io房间
+        leave_room(str(room_id))
 
-    # 将消息存储到Redis
-    message_data = {
-        'message_id': message_id,
-        'user_id': session['user_id'],
-        'nickname': session['nickname'],
-        'content': content,
-        'timestamp': datetime.now(timezone.utc).isoformat()
-    }
-    redis_key = f"room:{room_id}:messages"
-    redis_client.rpush(redis_key, json.dumps(message_data))
-    redis_client.expire(redis_key, 3600)  # 设置过期时间为1小时
+        # 广播用户离开消息
+        emit('system_message', {
+            'message': f"{user['nickname']} 离开了房间"
+        }, room=str(room_id))
 
-    # 广播消息
-    emit('new_message', message_data, room=room_id)
+        # 发送离开成功消息
+        emit('room_left', {'room_id': room_id})
 
-# ==================== 启动应用 ====================
+    except Exception as e:
+        logger.error(f"离开房间失败: {str(e)}", exc_info=True)
+        emit('system_message', {'message': '离开房间失败，请重试'})
+
+@socketio.on('message')
+def handle_message(data):
+    """处理聊天消息事件"""
+    try:
+        if 'user_id' not in session:
+            logger.warning("User not logged in when trying to send message")
+            emit('system_message', {'message': '请先登录'})
+            return
+
+        room_id = data.get('room_id')
+        content = data.get('content')
+        user_id = data.get('user_id')
+
+        if not room_id or not content or not user_id:
+            logger.warning("Missing required fields in message")
+            emit('system_message', {'message': '消息内容或用户ID不能为空'})
+            return
+
+        logger.info(f"User {user_id} sending message to room {room_id}: {content}")
+
+        # 获取用户信息
+        user = User.get_user_by_id(user_id)
+        if not user:
+            logger.error(f"User {user_id} not found")
+            emit('system_message', {'message': '用户不存在'})
+            return
+
+        # 检查用户是否在房间中
+        if not RoomMember.is_member(room_id, user_id):
+            logger.warning(f"User {user_id} not in room {room_id}")
+            emit('system_message', {'message': '您不在该房间中'})
+            return
+
+        # 保存消息到数据库
+        try:
+            message_id = Message.create_message(room_id, user_id, content)
+            logger.info(f"Message saved with id: {message_id}")
+        except Exception as e:
+            logger.error(f"Failed to save message: {str(e)}", exc_info=True)
+            emit('system_message', {'message': '消息保存失败'})
+            return
+
+        # 广播消息给房间内其他用户
+        message_data = {
+            'user_id': str(user_id),
+            'nickname': user['nickname'],
+            'content': content,
+            'timestamp': datetime.utcnow().isoformat()
+        }
+        
+        logger.info(f"Broadcasting message to room {room_id}: {message_data}")
+        emit('new_message', message_data, room=str(room_id))
+
+    except Exception as e:
+        logger.error(f"发送消息失败: {str(e)}", exc_info=True)
+        emit('system_message', {'message': '发送消息失败，请重试'})
+
+@socketio.on('submit_answer')
+def on_submit_answer(data):
+    """处理提交答案事件"""
+    try:
+        room_id = data['room_id']
+        challenge_id = data['challenge_id']
+        answer = data['answer']
+        user_id = data['user_id']
+        
+        # 验证答案并广播结果
+        result = WordChallenge.check_answer(challenge_id, answer)
+        emit('answer_result', {
+            'user_id': user_id,
+            'correct': result['correct'],
+            'message': result['message']
+        }, room=room_id)
+        
+    except Exception as e:
+        logger.error(f"提交答案失败: {str(e)}")
+        emit('system_message', {'message': '提交答案失败'})
+
+# ==================== 应用启动 ====================
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)

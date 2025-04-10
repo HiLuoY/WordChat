@@ -1,148 +1,656 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <title>Chat Client</title>
-    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
-    <script>
-        var socket;
-        var currentRoomId;
-        
-        function login() {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            
-            fetch('/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({email, password}),
-                credentials: 'include' // 重要：包含cookie
-            })
-            .then(response => response.json())
-            .then(data => {
-                if(data.message === 'Login successful') {
-                    // 登录成功后建立Socket连接
-                    socket = io.connect('http://192.168.236.26:5000', {
-                        withCredentials: true // 重要：携带cookie
-                    });
-                    
-                    setupSocketEvents();
-                    document.getElementById('loginForm').style.display = 'none';
-                    document.getElementById('chatForm').style.display = 'block';
-                    fetchRooms();
-                }
-            });
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>单词挑战聊天室</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            gap: 20px;
+        }
+        .login-section, .chat-section, .challenge-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .login-section {
+            width: 300px;
+        }
+        .chat-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .challenge-section {
+            width: 300px;
+        }
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-height: 200px;
+            max-height: 400px;
+            background-color: #fff;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            background-color: #f0f0f0;
+            word-break: break-word;
+        }
+        .message.system {
+            background-color: #e3f2fd;
+            font-style: italic;
+            color: #1976d2;
+        }
+        .message.user {
+            background-color: #e8f5e9;
+            margin-left: 20px;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        input[type="text"], input[type="password"] {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .owner-controls {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .hidden {
+            display: none;
+        }
+        .import-section {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            display: none; /* 默认隐藏 */
         }
         
-        function setupSocketEvents() {
-            socket.on('connect', function() {
-                console.log('Connected to server');
-            });
-
-            socket.on('error', function(error) {
-                console.error('Error:', error.message);
-                alert(error.message);
-            });
-
-            socket.on('system_message', function(msg) {
-                displayMessage(`[系统] ${msg.message}`);
-            });
-
-            socket.on('new_message', function(msg) {
-                displayMessage(`${msg.nickname}: ${msg.content}`);
-            });
+        .import-form {
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         
-        function displayMessage(msg) {
-            const messageElement = document.createElement('div');
-            messageElement.textContent = msg;
-            document.getElementById('messages').appendChild(messageElement);
+        .import-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
         }
         
-        function fetchRooms() {
-            fetch('/rooms', {
-                method: 'GET',
-                credentials: 'include' // 重要：包含cookie
-            })
-            .then(response => response.json())
-            .then(data => {
-                const roomsContainer = document.getElementById('roomsContainer');
-                roomsContainer.innerHTML = '';
-                data.rooms.forEach(room => {
-                    const roomElement = document.createElement('div');
-                    roomElement.textContent = room.room_name;
-                    roomElement.onclick = () => joinRoom(room.id, room.has_password);
-                    roomsContainer.appendChild(roomElement);
-                });
-            });
+        .import-btn:hover {
+            background-color: #45a049;
         }
         
-        function joinRoom(roomId, hasPassword) {
-            currentRoomId = roomId;
-            if (hasPassword) {
-                const password = prompt('请输入房间密码:');
-                if (password) {
-                    socket.emit('join_room', { room_id: roomId, password: password });
-                }
-            } else {
-                socket.emit('join_room', { room_id: roomId });
-            }
+        .import-btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
         }
         
-        function sendMessage() {
-            const content = document.getElementById('messageInput').value;
-            socket.emit('send_message', { 
-                room_id: currentRoomId, 
-                content: content 
-            });
-            document.getElementById('messageInput').value = '';
+        .import-message {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
         }
         
-        function createRoom() {
-            const roomName = document.getElementById('roomName').value;
-            const password = document.getElementById('roomPassword').value;
-            
-            fetch('/rooms', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ room_name: roomName, password: password }),
-                credentials: 'include' // 重要：包含cookie
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.message === '房间创建成功') {
-                    alert('房间创建成功');
-                    fetchRooms();
-                } else {
-                    alert(data.message);
-                }
-            });
+        .import-success {
+            background-color: #dff0d8;
+            color: #3c763d;
+            border: 1px solid #d6e9c6;
         }
-    </script>
+        
+        .import-error {
+            background-color: #f2dede;
+            color: #a94442;
+            border: 1px solid #ebccd1;
+        }
+    </style>
 </head>
 <body>
-    <div id="loginForm">
-        <h2>Login</h2>
-        <input type="text" id="email" placeholder="Email">
-        <input type="password" id="password" placeholder="Password">
-        <button onclick="login()">Login</button>
+    <div class="container">
+        <!-- 登录部分 -->
+        <div class="login-section" id="loginSection">
+            <h2>登录</h2>
+            <div class="input-group">
+                <input type="text" id="email" placeholder="邮箱">
+            </div>
+            <div class="input-group">
+                <input type="password" id="password" placeholder="密码">
+            </div>
+            <button onclick="login()">登录</button>
+        </div>
+
+        <!-- 修改导入部分的位置，放在登录区域之后 -->
+        <div class="import-section" id="importSection">
+            <h3>导入单词</h3>
+            <div class="import-form">
+                <input type="file" id="csvFile" accept=".csv">
+                <button class="import-btn" id="importBtn" onclick="importWords()">导入CSV</button>
+            </div>
+            <div id="importMessage" class="import-message"></div>
+        </div>
+
+        <!-- 聊天部分 -->
+        <div class="chat-section hidden" id="chatSection">
+            <h2>聊天室</h2>
+            <!-- 创建房间 -->
+            <div class="input-group">
+                <input type="text" id="roomName" placeholder="房间名称">
+                <button onclick="createRoom()">创建房间</button>
+            </div>
+            <!-- 加入房间 -->
+            <div class="input-group">
+                <input type="text" id="roomId" placeholder="房间ID">
+                <button onclick="joinRoom()">加入房间</button>
+            </div>
+            <div class="messages" id="messages"></div>
+            <div class="input-group">
+                <input type="text" id="messageInput" placeholder="输入消息...">
+                <button onclick="sendMessage()">发送</button>
+            </div>
+            <button onclick="leaveRoom()">离开房间</button>
+        </div>
+
+        <!-- 单词挑战部分 -->
+        <div class="challenge-section hidden" id="challengeSection">
+            <h2>单词挑战</h2>
+            <div id="ownerControls" class="owner-controls hidden">
+                <h3>房主控制面板</h3>
+                <div class="input-group">
+                    <select id="wordSelect" class="form-control">
+                        <option value="">请选择单词</option>
+                    </select>
+                </div>
+                <div id="wordInfo" class="hidden">
+                    <p>含义：<span id="wordMeaning"></span></p>
+                    <p>提示：<span id="wordHint"></span></p>
+                </div>
+                <button onclick="createChallenge()">创建挑战</button>
+            </div>
+            <div id="playerControls">
+                <h3>玩家控制面板</h3>
+                <div class="input-group">
+                    <input type="text" id="answer" placeholder="输入答案">
+                </div>
+                <button onclick="submitAnswer()">提交答案</button>
+            </div>
+        </div>
     </div>
-    
-    <div id="chatForm" style="display:none">
-        <h2>Rooms</h2>
-        <div id="roomsContainer"></div>
-        <h2>Create Room</h2>
-        <input type="text" id="roomName" placeholder="Room Name">
-        <input type="password" id="roomPassword" placeholder="Room Password (optional)">
-        <button onclick="createRoom()">Create Room</button>
-        <h2>Chat</h2>
-        <div id="messages"></div>
-        <input type="text" id="messageInput" placeholder="Type a message">
-        <button onclick="sendMessage()">Send</button>
-    </div>
+
+    <script>
+        let socket;
+        let currentRoomId = null;
+        let isRoomOwner = false;
+
+        // 初始化WebSocket连接
+        function initSocket() {
+            socket = io();
+            
+            socket.on('connect', () => {
+                console.log('已连接到服务器');
+            });
+
+            socket.on('disconnect', () => {
+                console.log('与服务器断开连接');
+                currentRoomId = null;
+                isRoomOwner = false;
+                updateUI();
+                $('#messages').empty();
+            });
+
+            socket.on('system_message', (data) => {
+                console.log('收到系统消息:', data);
+                appendMessage(data.message, true);
+            });
+
+            socket.on('new_message', (data) => {
+                console.log('收到新消息:', data);
+                const currentUserId = sessionStorage.getItem('user_id');
+                const isCurrentUser = data.user_id == currentUserId;
+                console.log('当前用户ID:', currentUserId, '消息用户ID:', data.user_id, '是否当前用户:', isCurrentUser);
+                
+                // 如果不是当前用户的消息，才显示
+                if (!isCurrentUser) {
+                    appendMessage(`${data.nickname}: ${data.content}`, false, false);
+                }
+            });
+
+            socket.on('room_joined', (data) => {
+                console.log('加入房间成功:', data);
+                currentRoomId = data.room_id;
+                isRoomOwner = data.is_owner;
+                updateUI();
+                appendMessage(`已加入房间: ${data.room_name}`, true);
+            });
+
+            socket.on('answer_result', (data) => {
+                appendMessage(`答案${data.correct ? '正确' : '错误'}: ${data.message}`, true);
+            });
+
+            socket.on('room_left', (data) => {
+                if (data.room_id === currentRoomId) {
+                    currentRoomId = null;
+                    isRoomOwner = false;
+                    updateUI();
+                    appendMessage('已离开房间', true);
+                    $('#messages').empty();
+                }
+            });
+
+            // 在 initSocket 函数中添加 ↓
+            socket.on('challenge_created', function(data) {
+                console.log('[WebSocket] 挑战创建事件:', data);
+                
+                // 严格字段验证
+                if (typeof data.word_meaning === 'undefined') {
+                    console.error('字段缺失! 完整消息:', data);
+                    return;
+                }
+                
+                appendMessage(`系统挑战：${data.word_meaning}`, true);
+            });
+        }
+
+        // 登录
+        function login() {
+            const email = $('#email').val();
+            const password = $('#password').val();
+            
+            $.ajax({
+                url: '/login',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ email, password }),
+                success: (response) => {
+                    if (response.code === 200) {
+                        // 存储用户ID到sessionStorage
+                        sessionStorage.setItem('user_id', response.data.id);
+                        sessionStorage.setItem('nickname', response.data.nickname);
+                        
+                        $('#loginSection').addClass('hidden');
+                        $('#chatSection').removeClass('hidden');
+                        $('#challengeSection').removeClass('hidden');
+                        $('#importSection').show(); // 显示导入区域
+                        initSocket();
+                    } else {
+                        alert(response.message);
+                    }
+                },
+                error: () => {
+                    alert('登录失败，请重试');
+                }
+            });
+        }
+
+        // 创建房间
+        function createRoom() {
+            const roomName = $('#roomName').val();
+            if (!roomName) {
+                alert('请输入房间名称');
+                return;
+            }
+
+            $.ajax({
+                url: '/rooms',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ room_name: roomName }),
+                success: (response) => {
+                    if (response.code === 201) {
+                        console.log('房间创建成功:', response);
+                        currentRoomId = response.data.room_id;
+                        isRoomOwner = true;
+                        
+                        // 更新UI显示
+                        updateUI();
+                        
+                        // 通过WebSocket加入房间
+                        socket.emit('join_room', {
+                            room_id: currentRoomId,
+                            room_name: response.data.room_name
+                        });
+                        
+                        appendMessage(`成功创建并加入房间: ${response.data.room_name}`, true);
+                    } else {
+                        alert(response.message);
+                    }
+                },
+                error: (xhr) => {
+                    console.error('创建房间失败:', xhr.responseText);
+                    alert('创建房间失败: ' + (xhr.responseJSON?.message || '未知错误'));
+                }
+            });
+        }
+        
+        // 离开房间
+        function leaveRoom() {
+            if (!currentRoomId) {
+                alert('您当前不在任何房间中');
+                return;
+            }
+
+            socket.emit('leave_room', {
+                room_id: currentRoomId
+            });
+        }
+
+        // 发送消息
+        function sendMessage() {
+            if (!currentRoomId) {
+                alert('请先加入房间');
+                return;
+            }
+
+            const content = $('#messageInput').val();
+            if (!content) {
+                alert('请输入消息内容');
+                return;
+            }
+
+            const currentUserId = sessionStorage.getItem('user_id');
+            console.log('发送消息:', {
+                room_id: currentRoomId,
+                content: content,
+                user_id: currentUserId
+            });
+
+            socket.emit('message', {
+                room_id: currentRoomId,
+                content: content,
+                user_id: currentUserId
+            });
+
+            // 立即显示自己的消息
+            const currentNickname = sessionStorage.getItem('nickname');
+            appendMessage(`${currentNickname}: ${content}`, false, true);
+
+            // 清空输入框
+            $('#messageInput').val('');
+        }
+
+        // 加载单词列表
+        function loadWords() {
+            console.log('开始加载单词列表');
+            $.get('/challenges/words', function(response) {
+                console.log('获取到单词列表响应:', response);
+                if (response.status === 'success') {
+                    const wordSelect = $('#wordSelect');
+                    wordSelect.empty();
+                    wordSelect.append('<option value="">选择单词</option>');
+                    
+                    response.words.forEach(function(word) {
+                        console.log('添加单词选项:', word);
+                        wordSelect.append(
+  `<option value="${word.id}" data-meaning="${word.meaning}" data-hint="${word.hint || ''}">${word.word}</option>`
+);
+
+                    });
+                    
+                    console.log('单词列表加载完成，选项数量:', response.words.length);
+                } else {
+                    console.error('加载单词列表失败:', response.message);
+                }
+            }).fail(function(error) {
+                console.error('加载单词列表请求失败:', error);
+            });
+        }
+
+        // 显示单词信息
+        $('#wordSelect').change(function() {
+            const selectedOption = $(this).find('option:selected');
+            if (selectedOption.val()) {
+                $('#wordMeaning').text(selectedOption.data('meaning'));
+                $('#wordHint').text(selectedOption.data('hint'));
+                $('#wordInfo').removeClass('hidden');
+            } else {
+                $('#wordInfo').addClass('hidden');
+            }
+        });
+
+        // 创建挑战
+        function createChallenge() {
+            if (!currentRoomId) {
+                alert('请先加入房间');
+                return;
+            }
+
+            const wordId = $('#wordSelect').val();
+            if (!wordId) {
+                alert('请选择单词');
+                return;
+            }
+
+            console.log('创建挑战，参数:', {
+                room_id: currentRoomId,
+                word_id: wordId
+            });
+
+            $.ajax({
+                url: '/challenges/create',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    room_id: currentRoomId,
+                    word_id: wordId
+                }),
+                /*success: (response) => {
+                    console.log('创建挑战响应:', response);
+                    if (response.code === 201) {
+                        // 清空选择
+                        $('#wordSelect').val('');
+                        $('#wordInfo').addClass('hidden');
+                        
+                        // 显示成功消息
+                        const word = response.data.word;
+                        appendMessage(`新挑战：单词含义是：${word.meaning}`, true);
+                    } else {
+                        alert('创建挑战失败：' + response.message);
+                    }
+                },*/
+                success: (response) => {
+                    if (response.code === 201) {
+                        // 删除旧的消息显示逻辑
+                        $('#wordSelect').val('');
+                        $('#wordInfo').addClass('hidden');
+                        appendMessage("挑战创建请求已发送", true); // 仅提示
+                    }
+                },
+                error: (xhr, status, error) => {
+                    console.error('创建挑战请求失败:', error);
+                    alert('创建挑战失败，请重试');
+                }
+            });
+        }
+
+        // 提交答案
+        function submitAnswer() {
+            if (!currentRoomId) {
+                alert('请先加入房间');
+                return;
+            }
+
+            const answer = $('#answer').val();
+            if (!answer) {
+                alert('请输入答案');
+                return;
+            }
+
+            $.ajax({
+                url: `/challenges/current/${currentRoomId}/answer`,
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ answer }),
+                success: (response) => {
+                    if (response.code === 200) {
+                        if (response.data.correct) {
+                            alert('回答正确！');
+                            $('#answer').val('');
+                        } else {
+                            alert(response.data.message);
+                        }
+                    } else {
+                        alert('提交答案失败：' + response.message);
+                    }
+                },
+                error: () => {
+                    alert('提交答案失败，请重试');
+                }
+            });
+        }
+
+        // 更新UI
+        function updateUI() {
+            console.log('更新UI，当前状态:', {
+                currentRoomId: currentRoomId,
+                isRoomOwner: isRoomOwner
+            });
+            
+            if (currentRoomId) {
+                console.log('显示房主控制面板:', isRoomOwner);
+                $('#ownerControls').toggleClass('hidden', !isRoomOwner);
+                $('#playerControls').toggleClass('hidden', isRoomOwner);
+                $('#challengeSection').removeClass('hidden');
+                $('#importSection').show();
+                
+                // 如果是房主，加载单词列表
+                if (isRoomOwner) {
+                    console.log('当前用户是房主，加载单词列表');
+                    loadWords();
+                } else {
+                    console.log('当前用户不是房主');
+                }
+            } else {
+                console.log('没有当前房间，隐藏所有控制面板');
+                $('#challengeSection').addClass('hidden');
+                $('#importSection').hide();
+            }
+        }
+
+        // 添加消息到聊天框
+        function appendMessage(message, isSystem = false, isCurrentUser = false) {
+            console.log('添加消息:', { message, isSystem, isCurrentUser });
+            
+            const messageDiv = $('<div>')
+                .addClass('message')
+                .text(message);
+            
+            if (isSystem) {
+                messageDiv.addClass('system');
+            } else if (isCurrentUser) {
+                messageDiv.addClass('user');
+            }
+            
+            $('#messages').append(messageDiv);
+            
+            // 滚动到底部
+            const messagesDiv = $('#messages');
+            messagesDiv.scrollTop(messagesDiv.prop('scrollHeight'));
+            
+            // 确保消息可见
+            messageDiv[0].scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+
+        // 修改导入单词的函数
+        function importWords() {
+            const fileInput = document.getElementById('csvFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showImportMessage('请选择CSV文件', 'error');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            const importBtn = document.getElementById('importBtn');
+            importBtn.disabled = true;
+            
+            $.ajax({
+                url: '/challenges/import',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    showImportMessage(response.message, 'success');
+                    // 导入成功后重新加载单词列表
+                    if (isRoomOwner) {
+                        loadWords();
+                    }
+                },
+                error: function(xhr) {
+                    const message = xhr.responseJSON ? xhr.responseJSON.message : '导入失败';
+                    showImportMessage(message, 'error');
+                },
+                complete: function() {
+                    importBtn.disabled = false;
+                    fileInput.value = ''; // 清空文件选择
+                }
+            });
+        }
+        
+        function showImportMessage(message, type) {
+            const messageDiv = document.getElementById('importMessage');
+            messageDiv.textContent = message;
+            messageDiv.className = `import-message import-${type}`;
+            messageDiv.style.display = 'block';
+            
+            // 3秒后自动隐藏消息
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        // 初始化
+        $(document).ready(() => {
+            $('#messageInput').keypress((e) => {
+                if (e.which === 13) {
+                    sendMessage();
+                }
+            });
+        });
+    </script>
 </body>
 </html>

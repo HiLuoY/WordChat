@@ -44,7 +44,7 @@ class Room:
         :return: 房间信息字典或None(如果房间不存在)
         """
         sql = """
-        SELECT id, password, room_name, owner_id, created_at 
+        SELECT id, password, room_name, password, owner_id, created_at 
         FROM Rooms 
         WHERE id = %s
         """
@@ -52,8 +52,13 @@ class Room:
         
         try:
             result = query(sql, params)
-            logger.info(f"Fetched room by id={room_id}")
-            return result[0] if result else None
+            if not result:
+                logger.warning(f"Room not found: id={room_id}")
+                return None
+                
+            room = result[0]
+            logger.info(f"Fetched room by id={room_id}: {room}")
+            return room
         except Exception as e:
             logger.error(f"Failed to fetch room by id={room_id}: {str(e)}", exc_info=True)
             raise

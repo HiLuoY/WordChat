@@ -1,4 +1,6 @@
-CREATE DATABASE IF NOT EXISTS elp;
+-- Create database
+CREATE DATABASE IF NOT EXISTS elp CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 USE elp;
 
 -- 用户表
@@ -48,9 +50,11 @@ CREATE TABLE IF NOT EXISTS Messages (
 -- 单词表
 CREATE TABLE IF NOT EXISTS Words (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '单词ID(主键, 自增)',
-    word VARCHAR(100) NOT NULL UNIQUE COMMENT '单词内容',
-    meaning TEXT NOT NULL COMMENT '单词的中文释义'
-) COMMENT='单词信息表';
+    word VARCHAR(255) NOT NULL COMMENT '单词',
+    meaning TEXT NOT NULL COMMENT '含义',
+    hint TEXT COMMENT '提示',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间'
+) COMMENT='单词表';
 
 -- 单词挑战表
 CREATE TABLE IF NOT EXISTS WordChallenges (
@@ -69,9 +73,9 @@ CREATE TABLE IF NOT EXISTS ChallengeAttempts (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '记录ID(主键, 自增)',
     challenge_id INT UNSIGNED NOT NULL COMMENT '挑战ID(外键)',
     user_id INT UNSIGNED NOT NULL COMMENT '用户ID(外键)',
-    submitted_word VARCHAR(255) NOT NULL COMMENT '用户提交的单词',
+    answer VARCHAR(255) NOT NULL COMMENT '用户答案',
     is_correct BOOLEAN NOT NULL COMMENT '是否正确',
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '提交时间',
+    attempted_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '答题时间',
     FOREIGN KEY (challenge_id) REFERENCES WordChallenges(id),
     FOREIGN KEY (user_id) REFERENCES Users(id)
 ) COMMENT='用户挑战记录表';
