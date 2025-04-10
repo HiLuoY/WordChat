@@ -133,3 +133,69 @@ class Word:
         except Exception as e:
             logger.error(f"获取所有单词失败: {str(e)}", exc_info=True)
             raise 
+
+
+    @staticmethod
+    def import_from_csv(csv_file_path):
+        """从CSV文件导入单词"""
+        try:
+            # 读取 CSV 文件
+            df = pd.read_csv(csv_file_path, header=None, names=['word', 'meaning'], nrows=100)
+            logger.info(f"Reading CSV file: {csv_file_path}, found {len(df)} records")
+            
+            # 准备 SQL 插入语句
+            insert_query = "INSERT INTO Words (word, meaning) VALUES (%s, %s)"
+            success_count = 0
+            
+            # 为 DataFrame 中的每一行执行插入操作
+            for index, row in df.iterrows():
+                try:
+                    insert(insert_query, (row['word'], row['meaning']))
+                    success_count += 1
+                except Exception as e:
+                    logger.warning(f"Failed to import word {row['word']}: {str(e)}")
+            
+            logger.info(f"Data import completed. Successfully imported {success_count}/{len(df)} words")
+            return success_count
+        except Exception as e:
+            logger.error(f"Failed to import from CSV {csv_file_path}: {str(e)}", exc_info=True)
+            raise
+
+
+    @staticmethod
+    def add_word(word, meaning):
+        """添加新单词"""
+        sql = "INSERT INTO Words (word, meaning) VALUES (%s, %s)"
+        try:
+            word_id = insert(sql, (word, meaning))
+            logger.info(f"Added new word: {word} (ID: {word_id})")
+            return word_id
+        except Exception as e:
+            logger.error(f"Failed to add word {word}: {str(e)}", exc_info=True)
+            raise
+
+    
+
+    @staticmethod
+    def get_random_word():
+        """获取随机单词"""
+        sql = "SELECT * FROM Words ORDER BY RAND() LIMIT 1"
+        try:
+            result = query(sql)
+            logger.debug("Fetched random word from database")
+            return result[0] if result else None
+        except Exception as e:
+            logger.error(f"Failed to get random word: {str(e)}", exc_info=True)
+            raise
+
+    @staticmethod
+    def get_all_words():
+        """获取所有单词"""
+        sql = "SELECT * FROM Words"
+        try:
+            result = query(sql)
+            logger.info(f"Fetched all words from database (count: {len(result)})")
+            return result
+        except Exception as e:
+            logger.error(f"Failed to get all words: {str(e)}", exc_info=True)
+            raise

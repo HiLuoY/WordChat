@@ -63,6 +63,24 @@ def upload_page():
     """显示上传页面"""
     return render_template('upload.html')
 
+#--------------注册登录 -----------------
+
+
+
+# --------------用户认证 -----------------
+
+
+
+
+# --------------单词挑战 -----------------
+
+
+
+#--------------房间聊天 -----------------
+
+
+
+
 # ==================== 用户认证模块 ====================
 @app.route('/register', methods=['POST'])
 def register():
@@ -118,6 +136,8 @@ def login():
     except Exception as e:
         logger.error(f"登录失败: {str(e)}")
         return jsonify({'code': 500, 'message': '服务器内部错误'}), 500
+
+
 
 # ==================== WebSocket事件处理 ====================
 @socketio.on('connect')
@@ -273,7 +293,7 @@ def handle_message(data):
 
         # 保存消息到数据库
         try:
-            message_id = Message.create_message(room_id, user_id, content)
+            message_id = Message.send_message(room_id, user_id, content)
             logger.info(f"Message saved with id: {message_id}")
         except Exception as e:
             logger.error(f"Failed to save message: {str(e)}", exc_info=True)
