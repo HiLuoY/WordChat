@@ -251,9 +251,11 @@
                 console.log('当前用户ID:', currentUserId, '消息用户ID:', data.user_id, '是否当前用户:', isCurrentUser);
                 
                 // 如果不是当前用户的消息，才显示
-                if (!isCurrentUser) {
+                /*if (!isCurrentUser) {
                     appendMessage(`${data.nickname}: ${data.content}`, false, false);
-                }
+                }*/
+               // 修改这里：显示所有消息，但区分是否是自己发送的
+                appendMessage(`${data.nickname}: ${data.content}`, false, isCurrentUser);
             });
 
             socket.on('room_joined', (data) => {
@@ -331,6 +333,12 @@
                 return;
             }
 
+            // 确保socket已连接
+            if (!socket || !socket.connected) {
+                alert('请等待WebSocket连接就绪');
+                return;
+            }
+
             $.ajax({
                 url: '/rooms',
                 method: 'POST',
@@ -339,19 +347,29 @@
                 success: (response) => {
                     if (response.code === 201) {
                         console.log('房间创建成功:', response);
+                        
+                        //isRoomOwner = true;
                         currentRoomId = response.data.room_id;
-                        isRoomOwner = true;
-                        
-                        // 更新UI显示
+                        isRoomOwner = response.data.is_owner;
+
+                        sessionStorage.setItem('current_room_id', currentRoomId); // 可选：存储到 sessionStorage
+                        sessionStorage.setItem('is_room_owner', isRoomOwner); // 可选：存储到 sessionStorage
+
                         updateUI();
-                        
-                        // 通过WebSocket加入房间
+
+                        // 关键修改1: 确保携带用户ID加入房间
                         socket.emit('join_room', {
                             room_id: currentRoomId,
-                            room_name: response.data.room_name
+                            room_name: response.data.room_name,
+                            user_id: sessionStorage.getItem('user_id') // 必须传递用户ID
                         });
-                        
-                        appendMessage(`成功创建并加入房间: ${response.data.room_name}`, true);
+
+                        // 关键修改2: 等待socket确认后再更新UI
+                        socket.once('room_joined', () => {
+                            updateUI();
+                            appendMessage(`成功创建并加入房间: ${response.data.room_name}`, true);
+                        });
+
                     } else {
                         alert(response.message);
                     }
@@ -397,6 +415,14 @@
                 room_id: roomId,
                 user_id: userId
             });
+            // 监听 room_joined 事件
+            socket.once('room_joined', (data) => {
+                console.log('加入房间成功:', data);
+                currentRoomId = data.room_id;
+                isRoomOwner = data.is_owner; // 确保从服务器返回的数据中获取房主状态
+                updateUI(); // 更新 UI
+                appendMessage(`已加入房间: ${data.room_name}`, true);
+            });
         }
         // 发送消息
         function sendMessage() {
@@ -415,18 +441,20 @@
             console.log('发送消息:', {
                 room_id: currentRoomId,
                 content: content,
-                user_id: currentUserId
+                user_id: currentUserId,
+                is_owner: isRoomOwner // 显式传递房主状态
             });
 
             socket.emit('message', {
                 room_id: currentRoomId,
                 content: content,
-                user_id: currentUserId
+                user_id: currentUserId,
+                is_owner: isRoomOwner // 显式传递房主状态
             });
 
             // 立即显示自己的消息
-            const currentNickname = sessionStorage.getItem('nickname');
-            appendMessage(`${currentNickname}: ${content}`, false, true);
+            /*const currentNickname = sessionStorage.getItem('nickname');
+            appendMessage(`${currentNickname}: ${content}`, false, true);*/
 
             // 清空输入框
             $('#messageInput').val('');
@@ -564,20 +592,20 @@
 
         // 更新UI
         function updateUI() {
-            console.log('更新UI，当前状态:', {
-                currentRoomId: currentRoomId,
+            console.log('更新UI,当前状态:', {
+                currentRoomId: !!currentRoomId, // 转换为布尔值方便调试
                 isRoomOwner: isRoomOwner
             });
             
             if (currentRoomId) {
                 console.log('显示房主控制面板:', isRoomOwner);
-                $('#ownerControls').toggleClass('hidden', !isRoomOwner);
-                $('#playerControls').toggleClass('hidden', isRoomOwner);
+                $('#ownerControls').toggleClass('hidden', isRoomOwner);
+                $('#playerControls').toggleClass('hidden', !isRoomOwner);
                 $('#challengeSection').removeClass('hidden');
                 $('#importSection').show();
                 
                 // 如果是房主，加载单词列表
-                if (isRoomOwner) {
+                if (!isRoomOwner) {
                     console.log('当前用户是房主，加载单词列表');
                     loadWords();
                 } else {

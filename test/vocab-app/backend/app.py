@@ -28,8 +28,8 @@ logger = logging.getLogger("SocketIO")  # 全局日志记录器
 
 # ==================== 应用初始化 ====================
 app = Flask(__name__)
-app.secret_key = secrets.token_hex(32)
-app.config['SESSION_TYPE'] = 'filesystem'
+app.secret_key = secrets.token_hex(32)  # 会话加密密钥
+app.config['SESSION_TYPE'] = 'filesystem'  # 会话存储方式
 
 # 初始化WebSocket
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
@@ -62,24 +62,6 @@ def test():
 def upload_page():
     """显示上传页面"""
     return render_template('upload.html')
-
-#--------------注册登录 -----------------
-
-
-
-# --------------用户认证 -----------------
-
-
-
-
-# --------------单词挑战 -----------------
-
-
-
-#--------------房间聊天 -----------------
-
-
-
 
 # ==================== 用户认证模块 ====================
 @app.route('/register', methods=['POST'])
@@ -137,8 +119,6 @@ def login():
         logger.error(f"登录失败: {str(e)}")
         return jsonify({'code': 500, 'message': '服务器内部错误'}), 500
 
-
-
 # ==================== WebSocket事件处理 ====================
 @socketio.on('connect')
 def handle_connect():
@@ -159,71 +139,79 @@ def handle_disconnect():
 
 @socketio.on('join_room')
 def handle_join_room(data):
-    """处理加入房间事件"""
+    """处理加入房间事件（带错误回调）"""
     try:
         if 'user_id' not in session:
-            logger.warning("User not logged in when trying to join room")
+            logger.warning("未登录用户尝试加入房间")
             emit('system_message', {'message': '请先登录'})
-            return
-
+            return {'error': '未登录用户'}, False  # 第二个参数是回调确认
+        
         room_id = data.get('room_id')
-        if not room_id:
-            logger.warning("Room ID not provided")
-            emit('system_message', {'message': '房间ID不能为空'})
-            return
-
-        logger.info(f"User {session['user_id']} attempting to join room {room_id}")
-
+        user_id = data.get('user_id')
+        
+        if not room_id or not user_id:
+            logger.warning("缺少必要参数")
+            emit('system_message', {'message': '房间ID和用户ID不能为空'})
+            return {'error': '缺少必要参数'}, False
+        
+        # 验证用户ID是否匹配会话
+        if str(session['user_id']) != str(user_id):
+            logger.warning(f"会话用户ID不匹配: session={session['user_id']}, param={user_id}")
+            emit('system_message', {'message': '用户身份验证失败'})
+            return {'error': '用户身份验证失败'}, False
+        
+        logger.info(f"用户 {user_id} 尝试加入房间 {room_id}")
+        
         # 获取房间信息
         room = Room.get_room_by_id(room_id)
         if not room:
-            logger.warning(f"Room {room_id} does not exist")
+            logger.warning(f"房间不存在: {room_id}")
             emit('system_message', {'message': '房间不存在'})
-            return
-
+            return {'error': '房间不存在'}, False
+        
         # 获取用户信息
-        user = User.get_user_by_id(session['user_id'])
+        user = User.get_user_by_id(user_id)
         if not user:
-            logger.error(f"User {session['user_id']} not found")
+            logger.error(f"用户不存在: {user_id}")
             emit('system_message', {'message': '用户不存在'})
-            return
-
+            return {'error': '用户不存在'}, False
+        
         try:
-            # 将用户添加到房间成员中
-            if not RoomMember.is_member(room_id, session['user_id']):
-                RoomMember.add_member(room_id, session['user_id'])
-                logger.info(f"Added user {session['user_id']} to room {room_id}")
-
+            # 添加房间成员
+            if not RoomMember.is_member(room_id, user_id):
+                RoomMember.add_member(room_id, user_id)
+                logger.info(f"添加用户 {user_id} 到房间 {room_id}")
+            
             # 加入Socket.io房间
             join_room(str(room_id))
-            logger.info(f"User {session['user_id']} joined socket room {room_id}")
-
+            logger.info(f"用户 {user_id} 加入Socket房间 {room_id}")
+            
             # 判断是否是房主
-            is_owner = room['owner_id'] == session['user_id']
-
+            is_owner = room['owner_id'] == user_id
+            
             # 发送加入成功消息
             emit('room_joined', {
                 'room_id': room_id,
                 'room_name': room['room_name'],
                 'is_owner': is_owner
-            })
-            logger.info(f"Sent room_joined event to user {session['user_id']}")
-
+            }, callback=lambda: logger.info(f"用户 {user_id} 收到房间加入确认"))
+            
             # 广播用户加入消息
             emit('system_message', {
                 'message': f"{user['nickname']} 加入了房间"
             }, room=str(room_id))
-            logger.info(f"Broadcast join message for user {user['nickname']}")
-
+            
+            return {'status': 'success'}, True
+            
         except Exception as e:
-            logger.error(f"Error while joining room: {str(e)}", exc_info=True)
-            emit('system_message', {'message': '加入房间失败，请重试'})
-            return
-
+            logger.error(f"加入房间时出错: {str(e)}", exc_info=True)
+            emit('system_message', {'message': '加入房间失败'})
+            return {'error': '服务器内部错误'}, False
+            
     except Exception as e:
-        logger.error(f"加入房间失败: {str(e)}", exc_info=True)
-        emit('system_message', {'message': '加入房间失败，请重试'})
-
+        logger.error(f"处理加入房间时发生异常: {str(e)}", exc_info=True)
+        emit('system_message', {'message': '系统错误'})
+        return {'error': '系统异常'}, False
 @socketio.on('leave_room')
 def handle_leave_room(data):
     """处理离开房间事件"""
