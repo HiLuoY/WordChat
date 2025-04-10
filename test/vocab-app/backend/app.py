@@ -1,3 +1,5 @@
+import json
+import datetime
 from flask import Flask, request, jsonify, session, render_template
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from datetime import datetime
@@ -6,17 +8,21 @@ from models.user_model import User
 from models.room_model import Room
 from models.message_model import Message
 from models.room_member_model import RoomMember
-from werkzeug.security import generate_password_hash, check_password_hash  # 添加导入
+from werkzeug.security import generate_password_hash, check_password_hash
+import redis
+from pytz import timezone
 
 app = Flask(__name__)
-app.secret_key = secrets.token_hex(32)  # 会话加密密钥
-app.config['SESSION_TYPE'] = 'filesystem'  # 会话存储方式
+app.secret_key = secrets.token_hex(32)
+app.config['SESSION_TYPE'] = 'filesystem'
 
 # 初始化SocketIO（使用eventlet异步模式）
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
-# ==================== HTTP路由部分 ====================
+# Redis配置
+redis_client = redis.StrictRedis(host='localhost', port=6379, db=0, decode_responses=True)
 
+# ==================== HTTP路由部分 ====================
 
 @app.route('/')
 def index():
@@ -71,7 +77,13 @@ def get_rooms():
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 10))
         rooms = Room.list_rooms(page, per_page)
-        return jsonify({'rooms': rooms}), 200
+        # 添加是否有密码的信息
+        rooms_with_password_info = []
+        for room in rooms:
+            room_with_password_info = room.copy()
+            room_with_password_info['has_password'] = room.get('password') is not None
+            rooms_with_password_info.append(room_with_password_info)
+        return jsonify({'rooms': rooms_with_password_info}), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 
@@ -101,8 +113,6 @@ def create_room():
         return jsonify({'message': str(e)}), 400
     except Exception as e:
         return jsonify({'message': str(e)}), 500
-
-
 
 @app.route('/rooms/<int:room_id>/leave', methods=['POST'])
 def leave_room(room_id):
@@ -138,7 +148,19 @@ def get_room_members(room_id):
 def get_room_messages(room_id):
     """获取房间历史消息"""
     try:
-        messages = Message.get_messages_by_room(room_id)
+        # 优先从Redis中读取消息
+        redis_key = f"room:{room_id}:messages"
+        messages = redis_client.lrange(redis_key, 0, -1)
+        if messages:
+            messages = [json.loads(msg) for msg in messages]
+        else:
+            # 如果Redis中没有消息，则从数据库中读取
+            messages = Message.get_messages_by_room(room_id)
+            # 将消息存储到Redis
+            for msg in messages:
+                redis_client.rpush(redis_key, json.dumps(msg))
+            redis_client.expire(redis_key, 3600)  # 设置过期时间为1小时
+
         return jsonify({'messages': messages}), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
@@ -152,24 +174,62 @@ def handle_connect():
     else:
         emit('error', {'message': '未认证的连接'})
 
+@socketio.on('get_room_info')
+def handle_get_room_info(data):
+    """获取房间信息"""
+    room_id = data.get('room_id')
+    if not room_id:
+        emit('error', {'message': '房间ID不能为空'})
+        return
+
+    try:
+        room = Room.get_room_by_id(room_id)
+        if not room:
+            emit('error', {'message': '房间不存在'})
+            return
+
+        has_password = room.get('password') is not None
+        emit('room_info', {'has_password': has_password})
+    except Exception as e:
+        emit('error', {'message': str(e)})
+
 @socketio.on('join_room')
 def handle_join_room(data):
     """加入聊天房间"""
     room_id = data.get('room_id')
+    password = data.get('password', None)
+
     if 'user_id' not in session:
         emit('error', {'message': '请先登录'})
         return
 
-    # 如果用户不是房间成员，则加入房间
-    if not RoomMember.is_member(room_id, session['user_id']):
-        RoomMember.add_member(room_id, session['user_id'])
+    try:
+        room = Room.get_room_by_id(room_id)
+        if not room:
+            emit('error', {'message': '房间不存在'})
+            return
 
-    join_room(room_id)
-    emit('system_message', {
-        'message': f"{session['nickname']} 进入了房间",
-        'timestamp': datetime.now().isoformat()
-    }, room=room_id)
+        # 检查密码
+        if room.get('password'):
+            if not password or room['password'] != password:
+                emit('error', {'message': '房间密码错误'})
+                return
 
+        # 如果用户不是房间成员，则加入房间
+        if not RoomMember.is_member(room_id, session['user_id']):
+            RoomMember.add_member(room_id, session['user_id'])
+
+        join_room(room_id)
+        emit('system_message', {
+            'message': f"{session['nickname']} 进入了房间",
+            'timestamp': datetime.now().isoformat()
+        }, room=str(room_id))
+    except ValueError as e:
+        emit('error', {'message': str(e)})
+    except Exception as e:
+        emit('error', {'message': str(e)})
+
+# 处理聊天消息
 @socketio.on('send_message')
 def handle_send_message(data):
     """处理聊天消息"""
@@ -192,14 +252,20 @@ def handle_send_message(data):
         message_type='normal'
     )
 
-    # 广播消息
-    emit('new_message', {
+    # 将消息存储到Redis
+    message_data = {
         'message_id': message_id,
         'user_id': session['user_id'],
         'nickname': session['nickname'],
         'content': content,
-        'timestamp': datetime.now().isoformat()
-    }, room=room_id)
+        'timestamp': datetime.now(timezone.utc).isoformat()
+    }
+    redis_key = f"room:{room_id}:messages"
+    redis_client.rpush(redis_key, json.dumps(message_data))
+    redis_client.expire(redis_key, 3600)  # 设置过期时间为1小时
+
+    # 广播消息
+    emit('new_message', message_data, room=room_id)
 
 # ==================== 启动应用 ====================
 if __name__ == '__main__':

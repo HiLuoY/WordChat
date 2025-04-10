@@ -31,6 +31,7 @@
                     setupSocketEvents();
                     document.getElementById('loginForm').style.display = 'none';
                     document.getElementById('chatForm').style.display = 'block';
+                    fetchRooms();
                 }
             });
         }
@@ -60,10 +61,34 @@
             document.getElementById('messages').appendChild(messageElement);
         }
         
-        function joinRoom() {
-            const roomId = document.getElementById('roomId').value;
+        function fetchRooms() {
+            fetch('/rooms', {
+                method: 'GET',
+                credentials: 'include' // 重要：包含cookie
+            })
+            .then(response => response.json())
+            .then(data => {
+                const roomsContainer = document.getElementById('roomsContainer');
+                roomsContainer.innerHTML = '';
+                data.rooms.forEach(room => {
+                    const roomElement = document.createElement('div');
+                    roomElement.textContent = room.room_name;
+                    roomElement.onclick = () => joinRoom(room.id, room.has_password);
+                    roomsContainer.appendChild(roomElement);
+                });
+            });
+        }
+        
+        function joinRoom(roomId, hasPassword) {
             currentRoomId = roomId;
-            socket.emit('join_room', { room_id: roomId });
+            if (hasPassword) {
+                const password = prompt('请输入房间密码:');
+                if (password) {
+                    socket.emit('join_room', { room_id: roomId, password: password });
+                }
+            } else {
+                socket.emit('join_room', { room_id: roomId });
+            }
         }
         
         function sendMessage() {
@@ -73,6 +98,29 @@
                 content: content 
             });
             document.getElementById('messageInput').value = '';
+        }
+        
+        function createRoom() {
+            const roomName = document.getElementById('roomName').value;
+            const password = document.getElementById('roomPassword').value;
+            
+            fetch('/rooms', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ room_name: roomName, password: password }),
+                credentials: 'include' // 重要：包含cookie
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message === '房间创建成功') {
+                    alert('房间创建成功');
+                    fetchRooms();
+                } else {
+                    alert(data.message);
+                }
+            });
         }
     </script>
 </head>
@@ -85,8 +133,13 @@
     </div>
     
     <div id="chatForm" style="display:none">
-        <input type="text" id="roomId" placeholder="Room ID">
-        <button onclick="joinRoom()">Join Room</button>
+        <h2>Rooms</h2>
+        <div id="roomsContainer"></div>
+        <h2>Create Room</h2>
+        <input type="text" id="roomName" placeholder="Room Name">
+        <input type="password" id="roomPassword" placeholder="Room Password (optional)">
+        <button onclick="createRoom()">Create Room</button>
+        <h2>Chat</h2>
         <div id="messages"></div>
         <input type="text" id="messageInput" placeholder="Type a message">
         <button onclick="sendMessage()">Send</button>
