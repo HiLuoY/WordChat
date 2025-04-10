@@ -374,7 +374,30 @@
                 room_id: currentRoomId
             });
         }
-
+        // 定义joinRoom函数
+        function joinRoom() {
+            const roomId = document.getElementById('roomId').value.trim();
+            if (!roomId) {
+                alert('请输入房间ID');
+                return;
+            }
+            
+            if (!socket || !socket.connected) {
+                alert('请等待连接建立');
+                return;
+            }
+            
+            const userId = sessionStorage.getItem('user_id');
+            if (!userId) {
+                alert('请先登录');
+                return;
+            }
+            
+            socket.emit('join_room', {
+                room_id: roomId,
+                user_id: userId
+            });
+        }
         // 发送消息
         function sendMessage() {
             if (!currentRoomId) {

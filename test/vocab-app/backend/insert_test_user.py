@@ -13,6 +13,7 @@ DB_CONFIG = {
 connection = pymysql.connect(**DB_CONFIG)
 
 try:
+
     with connection.cursor() as cursor:
         # 哈希处理密码 - 使用与 Flask 完全相同的参数
         password = 'test123'
@@ -25,7 +26,7 @@ try:
 
         # 插入测试用户
         sql = "INSERT INTO Users (email, password_hash, nickname) VALUES (%s, %s, %s)"
-        cursor.execute(sql, ('test@qq.com', hashed_password, 'TestUser'))
+        cursor.execute(sql, ('zyj@qq.com', hashed_password, 'TestUser'))
         connection.commit()
         print("测试用户插入成功")
 finally:

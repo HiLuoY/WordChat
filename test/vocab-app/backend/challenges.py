@@ -5,6 +5,7 @@ from datetime import datetime
 import logging
 from flask_socketio import emit
 from flask import session
+from database.db_utils import query
 
 # 创建蓝图对象
 challenge_bp = Blueprint('challenges', __name__, url_prefix='/challenges')
