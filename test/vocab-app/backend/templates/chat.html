@@ -298,7 +298,7 @@
             const password = $('#password').val();
             
             $.ajax({
-                url: '/login',
+                url: '/user/login',
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify({ email, password }),

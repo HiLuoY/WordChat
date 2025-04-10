@@ -128,3 +128,6 @@ def leave_room(room_id):
     except Exception as e:
         logger.error(f"离开房间失败: {str(e)}")
         return jsonify({'code': 500, 'message': '服务器内部错误'}), 500 
+    
+
+    
