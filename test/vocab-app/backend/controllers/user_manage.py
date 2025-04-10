@@ -8,7 +8,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-user_bp = Blueprint('user', __name__, url_prefix='/user')
+user_bp = Blueprint('user', __name__, url_prefix='/api/user')
 
 # ==================== 用户认证模块 ====================
 @user_bp.route('/register', methods=['POST'])
