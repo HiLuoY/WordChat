@@ -599,13 +599,13 @@
             
             if (currentRoomId) {
                 console.log('显示房主控制面板:', isRoomOwner);
-                $('#ownerControls').toggleClass('hidden', isRoomOwner);
-                $('#playerControls').toggleClass('hidden', !isRoomOwner);
+                $('#ownerControls').toggleClass('hidden', !isRoomOwner);
+                $('#playerControls').toggleClass('hidden', isRoomOwner);
                 $('#challengeSection').removeClass('hidden');
                 $('#importSection').show();
                 
                 // 如果是房主，加载单词列表
-                if (!isRoomOwner) {
+                if (isRoomOwner) {
                     console.log('当前用户是房主，加载单词列表');
                     loadWords();
                 } else {
