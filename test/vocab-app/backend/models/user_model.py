@@ -2,6 +2,7 @@ from database.db_utils import insert, query, update, delete
 from datetime import datetime
 import logging
 from typing import Optional, Dict, List
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -168,3 +169,4 @@ class User:
         except Exception as e:
             logger.error(f"Failed to fetch user list: {str(e)}", exc_info=True)
             raise
+    
