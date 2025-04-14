@@ -1,4 +1,4 @@
-#from database.db_utils import query, insert, update, delete
+from database.db_utils import query, insert, update, delete
 from datetime import datetime
 import logging
 from database.db_utils import get_db_connection

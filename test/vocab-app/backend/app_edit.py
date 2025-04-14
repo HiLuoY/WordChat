@@ -18,7 +18,7 @@ from flask_cors import CORS
 
 # 导入控制器
 from controllers.room_controller import room_bp  # 房间控制器
-from challenges import challenge_bp  # 单词挑战蓝图
+from challenges import challenge_api  # 单词挑战蓝图
 from controllers.user_manage import user_bp
 from controllers.auth_controller import auth_bp  # 用户认证蓝图
 
@@ -44,7 +44,7 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 # 注册蓝图
 app.register_blueprint(room_bp)  # 注册房间相关路由
-app.register_blueprint(challenge_bp)  # 注册单词挑战相关路由
+app.register_blueprint(challenge_api)  # 注册单词挑战相关路由
 app.register_blueprint(user_bp)  #注册用户管理相关路由
 app.register_blueprint(auth_bp)  # 用户注册认证路由
 
@@ -68,10 +68,10 @@ def test():
     """测试页面路由"""
     return render_template('test.html')
 
-@app.route('/register')
+@app.route('/upload')
 def upload_page():
     """显示上传页面"""
-    return render_template('register.html')
+    return render_template('upload.html')
 
 #--------------注册登录 -----------------
 

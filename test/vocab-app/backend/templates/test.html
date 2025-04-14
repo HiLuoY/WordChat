@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>单词挑战游戏</title>
+    <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.6.0/dist/socket.io.min.js"></script>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        .button { padding: 10px 20px; background: #4CAF50; color: white; border: none; cursor: pointer; }
+        .button:disabled { background: #aaa; }
+        .hidden { display: none; }
+        input { margin: 5px; padding: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🎯 单词挑战游戏</h1>
+
+    <div>
+        <label>房间ID:</label>
+        <input type="text" id="room-id">
+        <label>用户ID:</label>
+        <input type="text" id="user-id">
+        <button class="button" onclick="joinRoom()">加入房间</button>
+    </div>
+
+    <div id="create-section" class="hidden">
+        <h3>挑战设置（仅房主可见）</h3>
+        <input type="number" id="num-words" placeholder="默认 5 个题目" />
+        <button class="button" onclick="createChallenge()">创建挑战</button>
+    </div>
+
+    <div id="challenge-container" class="hidden">
+        <h2>挑战中...</h2>
+        <p>当前单词：<span id="word-display">等待开始</span></p>
+        <input type="text" id="answer" placeholder="输入你的答案">
+        <button class="button" onclick="submitAnswer()">提交答案</button>
+        <p id="feedback"></p>
+    </div>
+
+    <script>
+        let socket;
+        let roomId, userId;
+        let isOwner = false;
+
+        function joinRoom() {
+            roomId = document.getElementById('room-id').value.trim();
+            userId = document.getElementById('user-id').value.trim();
+            if (!roomId || !userId) return alert("房间ID 和 用户ID 不能为空");
+
+            socket = io();
+            // 先监听连接成功
+            socket.on('connect', () => {
+                console.log('Connected, now joining room...');
+                socket.emit('join', { room_id: roomId, user_id: userId });
+            });
+
+            
+            // 假设后端响应 room_joined 事件
+            socket.on('room_joined', (data) => {
+                console.log('房间加入成功:', data);
+                isOwner = data.is_owner;
+                if (isOwner) {
+                    document.getElementById("create-section").classList.remove("hidden");
+                }
+                document.getElementById("challenge-container").classList.remove("hidden");
+            });
+
+            socket.on('system_message', (msg) => {
+                alert(msg.message || '系统提示');
+            });
+
+            socket.on('next_word', (data) => {
+                document.getElementById("word-display").textContent = "请拼写此单词...";
+                document.getElementById("feedback").textContent = "";
+                document.getElementById("answer").value = "";
+                document.getElementById("answer").disabled = false;
+            });
+
+            socket.on('reveal_word', (data) => {
+                document.getElementById("word-display").textContent = `${data.word}（${data.meaning}）`;
+            });
+
+            socket.on('answer_feedback', (data) => {
+                document.getElementById("feedback").textContent = data.correct ? "✅ 正确" : `❌ 错误！你输入了 ${data.mask}`;
+                document.getElementById("answer").disabled = true;
+            });
+
+            socket.on('challenge_end', () => {
+                alert("🎉 挑战结束！");
+            });
+        }
+
+        function createChallenge() {
+            const numWords = parseInt(document.getElementById("num-words").value) || 5;
+            fetch('/api/challenge/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    room_id: roomId,
+                    owner_id: userId,
+                    num_words: numWords
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.challenge_id) {
+                    // 广播第一道题
+                    socket.emit('next_word', { room_id: roomId });
+                    socket.emit('start_timer', { room_id: roomId });
+                } else {
+                    alert(data.error || "创建挑战失败");
+                }
+            });
+        }
+
+        function submitAnswer() {
+            const answer = document.getElementById("answer").value.trim();
+            if (answer) {
+                socket.emit('submit_answer', {
+                    room_id: roomId,
+                    user_id: userId,
+                    answer: answer
+                });
+            }
+        }
+    </script>
+</body>
+</html>

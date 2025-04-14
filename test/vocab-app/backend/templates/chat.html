@@ -148,6 +148,7 @@
     </style>
 </head>
 <body>
+    
     <div class="container">
         <!-- 登录部分 -->
         <div class="login-section" id="loginSection">
@@ -300,14 +301,14 @@
             const password = $('#password').val();
             
             $.ajax({
-                url: '/api/user/login',
+                url: '/api/auth/login',
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify({ email, password }),
                 success: (response) => {
                     if (response.code === 200) {
                         // 存储用户ID到sessionStorage
-                        sessionStorage.setItem('user_id', response.data.id);
+                        sessionStorage.setItem('user_id', response.data.user_id);
                         sessionStorage.setItem('nickname', response.data.nickname);
                         
                         $('#loginSection').addClass('hidden');
@@ -525,20 +526,6 @@
                     room_id: currentRoomId,
                     word_id: wordId
                 }),
-                /*success: (response) => {
-                    console.log('创建挑战响应:', response);
-                    if (response.code === 201) {
-                        // 清空选择
-                        $('#wordSelect').val('');
-                        $('#wordInfo').addClass('hidden');
-                        
-                        // 显示成功消息
-                        const word = response.data.word;
-                        appendMessage(`新挑战：单词含义是：${word.meaning}`, true);
-                    } else {
-                        alert('创建挑战失败：' + response.message);
-                    }
-                },*/
                 success: (response) => {
                     if (response.code === 201) {
                         // 删除旧的消息显示逻辑
