@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 DB_CONFIG = {
     'host': 'localhost',
     'user': 'root',
-    'password': 'hily0403',  # 替换为你的 MySQL 密码
+    'password': 'test',  # 替换为你的 MySQL 密码
     'database': 'elp',
     'cursorclass': DictCursor
 }
@@ -94,3 +94,13 @@ def delete(sql, params=None):
     finally:
         connection.close()
         logger.info("Database connection closed")
+
+
+"""
+查询房间
+mysql -u root -p
+SHOW DATABASES;
+USE elp;
+SELECT * FROM room;
+
+"""

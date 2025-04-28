@@ -36,6 +36,54 @@
         .challenge-section {
             width: 300px;
         }
+        .ranking-section {
+        width: 300px;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .ranking-board {
+        margin-top: 15px;
+    }
+
+    .ranking-header {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #eee;
+        font-weight: bold;
+    }
+
+    .ranking-header span {
+        flex: 1;
+        text-align: center;
+    }
+
+    .ranking-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #f5f5f5;
+    }
+
+    .ranking-item:nth-child(odd) {
+        background-color: #f9f9f9;
+    }
+
+    .ranking-item span {
+        flex: 1;
+        text-align: center;
+    }
+
+    .my-ranking {
+        margin-top: 15px;
+        padding: 10px;
+        background-color: #e3f2fd;
+        border-radius: 4px;
+        text-align: center;
+    }
         .messages {
             flex: 1;
             overflow-y: auto;
@@ -219,6 +267,29 @@
         </div>
     </div>
 
+    <!-- 在现有容器中添加排行榜区块 -->
+    <div class="container">
+        <!-- 原有其他区块保持不变... -->
+        
+        <!-- 新增排行榜区块 -->
+        <div class="ranking-section hidden" id="rankingSection">
+            <h2>实时排行榜</h2>
+            <div class="ranking-board">
+                <div class="ranking-header">
+                    <span>排名</span>
+                    <span>玩家</span>
+                    <span>分数</span>
+                    <span>最后更新</span>
+                </div>
+                <div class="ranking-list" id="rankingList"></div>
+            </div>
+            <div class="my-ranking">
+                我的当前排名: <span id="myRank">-</span>
+            </div>
+        </div>
+    </div>
+
+
     <script>
         let socket;
         let currentRoomId = null;
@@ -265,6 +336,15 @@
                 isRoomOwner = data.is_owner;
                 updateUI();
                 appendMessage(`已加入房间: ${data.room_name}`, true);
+
+                // 加入排行榜房间
+                socket.emit('join_ranking_room', { room_id: data.room_id });
+                
+                // 请求个人排名
+                socket.emit('get_my_ranking', { 
+                    room_id: data.room_id,
+                    user_id: sessionStorage.getItem('user_id')
+        });
             });
 
             socket.on('answer_result', (data) => {
@@ -278,6 +358,9 @@
                     updateUI();
                     appendMessage('已离开房间', true);
                     $('#messages').empty();
+                    //重置排行榜
+                    $('#rankingList').empty();
+                    $('#myRank').text('-');
                 }
             });
 
@@ -425,6 +508,18 @@
                 appendMessage(`已加入房间: ${data.room_name}`, true);
             });
         }
+         // 排行榜更新事件
+        socket.on('leaderboard_update', (data) => {
+            console.log('排行榜更新:', data);
+            updateRankingUI(data);
+        });
+
+        // 个人排名响应
+        socket.on('user_ranking', (data) => {
+            console.log('收到个人排名:', data);
+            $('#myRank').text(data.rank || '未上榜');
+        });
+
         // 发送消息
         function sendMessage() {
             if (!currentRoomId) {
@@ -576,6 +671,7 @@
                 }
             });
         }
+        //排行榜
 
         // 更新UI
         function updateUI() {
@@ -583,6 +679,7 @@
                 currentRoomId: !!currentRoomId, // 转换为布尔值方便调试
                 isRoomOwner: isRoomOwner
             });
+            
             
             if (currentRoomId) {
                 console.log('显示房主控制面板:', isRoomOwner);
@@ -603,7 +700,38 @@
                 $('#challengeSection').addClass('hidden');
                 $('#importSection').hide();
             }
+            $('#rankingSection').toggleClass('hidden', !currentRoomId);
         }
+        
+        // 更新排行榜UI
+        function updateRankingUI(rankingData) {
+            const container = $('#rankingList').empty();
+            
+            rankingData.forEach((item, index) => {
+                const entry = $('<div>').addClass('ranking-item');
+                entry.append($('<span>').text(index + 1));
+                entry.append($('<span>').text(item.nickname));
+                entry.append($('<span>').text(item.score));
+                entry.append($('<span>').text(
+                    new Date(item.updated_at).toLocaleTimeString()
+                ));
+                container.append(entry);
+            });
+        }
+
+         // 在挑战成功时提交分数（示例在答案正确时调用）
+        function submitAnswer() {
+            // ...原有代码...
+            
+            if (response.data.correct) {
+                // 假设每次正确回答+10分
+                socket.emit('submit_score', {
+                    room_id: currentRoomId,
+                    delta: 10
+                });
+            }
+        }
+
 
         // 添加消息到聊天框
         function appendMessage(message, isSystem = false, isCurrentUser = false) {
@@ -690,5 +818,7 @@
             });
         });
     </script>
+
+    
 </body>
 </html>
