@@ -18,13 +18,12 @@ from flask_cors import CORS
 
 # 导入控制器
 from controllers.room_controller import room_bp  # 房间控制器
-from challenges import challenge_api  # 单词挑战蓝图
-from controllers.user_manage import user_bp
+from challenges import challenge_bp  # 单词挑战蓝图
 from controllers.auth_controller import auth_bp  # 用户认证蓝图
 
 from ws_events.chat_events import register_chat_events
 from ws_events.room_events import register_room_events
-from ws_events.challenge_events import register_challenge_events
+#from ws_events.challenge_events import register_challenge_events
 # ==================== 日志配置 ====================
 import logging
 logging.basicConfig(
@@ -44,8 +43,7 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 # 注册蓝图
 app.register_blueprint(room_bp)  # 注册房间相关路由
-app.register_blueprint(challenge_api)  # 注册单词挑战相关路由
-app.register_blueprint(user_bp)  #注册用户管理相关路由
+app.register_blueprint(challenge_bp)  # 注册单词挑战相关路由
 app.register_blueprint(auth_bp)  # 用户注册认证路由
 
 # 登录验证装饰器
@@ -63,30 +61,16 @@ def index():
     """首页"""
     return render_template('chat.html')
 
-@app.route('/test')
-def test():
-    """测试页面路由"""
-    return render_template('test.html')
+# @app.route('/test')
+# def test():
+#     """测试页面路由"""
+#     return render_template('test.html')
 
-@app.route('/upload')
+@app.route('/register')
 def upload_page():
-    """显示上传页面"""
-    return render_template('upload.html')
+    """显示注册页面"""
+    return render_template('register.html')
 
-#--------------注册登录 -----------------
-
-
-
-# --------------用户认证 -----------------
-
-
-
-
-# --------------单词挑战 -----------------
-
-
-
-#--------------房间聊天 -----------------
 
 
 
@@ -96,7 +80,6 @@ def upload_page():
 # ==================== WebSocket事件处理 ====================
 register_room_events(socketio)
 register_chat_events(socketio)
-register_challenge_events(socketio)
 # ==================== 应用启动 ====================
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)

@@ -196,28 +196,24 @@
         <!-- 单词挑战部分 -->
         <div class="challenge-section hidden" id="challengeSection">
             <h2>单词挑战</h2>
-            <div id="ownerControls" class="owner-controls hidden">
-                <h3>房主控制面板</h3>
+            <div id="create-section" class="hidden">
+                <h3>挑战设置（仅房主可见）</h3>
                 <div class="input-group">
-                    <select id="wordSelect" class="form-control">
-                        <option value="">请选择单词</option>
-                    </select>
+                    <input type="number" id="num-words" placeholder="默认 5 个题目" />
+                    <button onclick="createChallenge()">创建挑战</button>
                 </div>
-                <div id="wordInfo" class="hidden">
-                    <p>含义：<span id="wordMeaning"></span></p>
-                    <p>提示：<span id="wordHint"></span></p>
-                </div>
-                <button onclick="createChallenge()">创建挑战</button>
             </div>
-            <div id="playerControls">
-                <h3>玩家控制面板</h3>
+            
+            <div id="challenge-container" class="hidden">
+                <h3>挑战进行中</h3>
+                <p>当前单词释义：<span id="word-meaning">等待开始</span></p>
                 <div class="input-group">
-                    <input type="text" id="answer" placeholder="输入答案">
+                    <input type="text" id="answer" placeholder="输入你的答案">
+                    <button onclick="submitAnswer()">提交答案</button>
                 </div>
-                <button onclick="submitAnswer()">提交答案</button>
+                <p id="feedback" style="margin-top:10px;"></p>
             </div>
         </div>
-    </div>
 
     <script>
         let socket;
@@ -281,17 +277,29 @@
                 }
             });
 
-            // 在 initSocket 函数中添加 ↓
-            socket.on('challenge_created', function(data) {
-                console.log('[WebSocket] 挑战创建事件:', data);
+            // 添加新的Socket事件监听（放在initSocket函数中）
+            socket.on('reveal_word', (data) => {
+                console.log('收到单词:', data);
+                $('#word-meaning').text(data.word_meaning);
+                $('#answer').val('').prop('disabled', false);
+                $('#feedback').text('');
+            });
+
+            socket.on('reveal_answer', (data) => {
+                $('#feedback').text(`正确答案: ${data.word}`);
+                $('#answer').prop('disabled', true);
+            });
+
+            socket.on('challenge_end', () => {
+                appendMessage("🎉 挑战结束！", true);
+                $('#challenge-container').addClass('hidden');
+            });
+            socket.on('answer_feedback', (data) => {
+                const isCurrentUser = data.user_id == sessionStorage.getItem('user_id');
+                const nickname = sessionStorage.getItem('nickname');
+                const feedback = `${nickname} :${data.mask}`;
+                appendMessage(feedback, true, false, true);
                 
-                // 严格字段验证
-                if (typeof data.word_meaning === 'undefined') {
-                    console.error('字段缺失! 完整消息:', data);
-                    return;
-                }
-                
-                appendMessage(`系统挑战：${data.word_meaning}`, true);
             });
         }
 
@@ -461,149 +469,77 @@
             $('#messageInput').val('');
         }
 
-        // 加载单词列表
-        function loadWords() {
-            console.log('开始加载单词列表');
-            $.get('/challenges/words', function(response) {
-                console.log('获取到单词列表响应:', response);
-                if (response.status === 'success') {
-                    const wordSelect = $('#wordSelect');
-                    wordSelect.empty();
-                    wordSelect.append('<option value="">选择单词</option>');
-                    
-                    response.words.forEach(function(word) {
-                        console.log('添加单词选项:', word);
-                        wordSelect.append(
-  `<option value="${word.id}" data-meaning="${word.meaning}" data-hint="${word.hint || ''}">${word.word}</option>`
-);
+        
 
-                    });
-                    
-                    console.log('单词列表加载完成，选项数量:', response.words.length);
-                } else {
-                    console.error('加载单词列表失败:', response.message);
-                }
-            }).fail(function(error) {
-                console.error('加载单词列表请求失败:', error);
-            });
-        }
-
-        // 显示单词信息
-        $('#wordSelect').change(function() {
-            const selectedOption = $(this).find('option:selected');
-            if (selectedOption.val()) {
-                $('#wordMeaning').text(selectedOption.data('meaning'));
-                $('#wordHint').text(selectedOption.data('hint'));
-                $('#wordInfo').removeClass('hidden');
-            } else {
-                $('#wordInfo').addClass('hidden');
-            }
-        });
-
-        // 创建挑战
+        // 更新 createChallenge 函数
         function createChallenge() {
             if (!currentRoomId) {
                 alert('请先加入房间');
                 return;
             }
 
-            const wordId = $('#wordSelect').val();
-            if (!wordId) {
-                alert('请选择单词');
-                return;
-            }
-
-            console.log('创建挑战，参数:', {
-                room_id: currentRoomId,
-                word_id: wordId
-            });
-
+            const numWords = parseInt($('#num-words').val()) || 5;
+            
             $.ajax({
-                url: '/challenges/create',
+                url: '/api/challenge/create',
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify({
                     room_id: currentRoomId,
-                    word_id: wordId
+                    num_words: numWords
                 }),
                 success: (response) => {
                     if (response.code === 201) {
-                        // 删除旧的消息显示逻辑
-                        $('#wordSelect').val('');
-                        $('#wordInfo').addClass('hidden');
-                        appendMessage("挑战创建请求已发送", true); // 仅提示
+                        appendMessage("挑战创建成功，等待开始...", true);
+                    } else {
+                        alert(response.message);
                     }
                 },
-                error: (xhr, status, error) => {
-                    console.error('创建挑战请求失败:', error);
+                error: () => {
                     alert('创建挑战失败，请重试');
                 }
             });
         }
 
-        // 提交答案
+
+        // 更新 submitAnswer 函数
         function submitAnswer() {
             if (!currentRoomId) {
                 alert('请先加入房间');
                 return;
             }
 
-            const answer = $('#answer').val();
+            const answer = $('#answer').val().trim();
             if (!answer) {
                 alert('请输入答案');
                 return;
             }
 
-            $.ajax({
-                url: `/challenges/current/${currentRoomId}/answer`,
-                method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ answer }),
-                success: (response) => {
-                    if (response.code === 200) {
-                        if (response.data.correct) {
-                            alert('回答正确！');
-                            $('#answer').val('');
-                        } else {
-                            alert(response.data.message);
-                        }
-                    } else {
-                        alert('提交答案失败：' + response.message);
-                    }
-                },
-                error: () => {
-                    alert('提交答案失败，请重试');
-                }
+            const userId = sessionStorage.getItem('user_id');
+            socket.emit('submit_answer', {
+                room_id: currentRoomId,
+                user_id: userId,
+                answer: answer
             });
         }
-
-        // 更新UI
+        // 更新 updateUI 函数
         function updateUI() {
             console.log('更新UI,当前状态:', {
-                currentRoomId: !!currentRoomId, // 转换为布尔值方便调试
+                currentRoomId: !!currentRoomId,
                 isRoomOwner: isRoomOwner
             });
             
             if (currentRoomId) {
-                console.log('显示房主控制面板:', isRoomOwner);
-                $('#ownerControls').toggleClass('hidden', !isRoomOwner);
-                $('#playerControls').toggleClass('hidden', isRoomOwner);
+                $('#create-section').toggleClass('hidden', !isRoomOwner);
+                $('#challenge-container').removeClass('hidden');
                 $('#challengeSection').removeClass('hidden');
                 $('#importSection').show();
-                
-                // 如果是房主，加载单词列表
-                if (isRoomOwner) {
-                    console.log('当前用户是房主，加载单词列表');
-                    loadWords();
-                } else {
-                    console.log('当前用户不是房主');
-                }
             } else {
-                console.log('没有当前房间，隐藏所有控制面板');
                 $('#challengeSection').addClass('hidden');
                 $('#importSection').hide();
             }
         }
+
 
         // 添加消息到聊天框
         function appendMessage(message, isSystem = false, isCurrentUser = false) {

@@ -201,3 +201,31 @@ class Room:
         except Exception as e:
             logger.error(f"Failed to fetch rooms by owner_id={owner_id}: {str(e)}", exc_info=True)
             raise
+
+
+    @staticmethod
+    def is_owner(room_id, user_id):
+        """判断用户是否是房间的房主"""
+        # 定义SQL查询语句和参数
+        sql = """
+        SELECT * FROM rooms
+        WHERE id = %s AND owner_id = %s
+        """
+        params = (room_id, user_id)
+
+        try:
+            # 执行查询
+            result = query(sql, params)
+            
+            # 检查查询结果并返回布尔值
+            if result:
+                logger.info(f"User={user_id} is the owner of room={room_id}")
+                return True
+            else:
+                logger.info(f"User={user_id} is NOT the owner of room={room_id}")
+                return False
+
+        except Exception as e:
+            # 捕获异常并记录错误信息
+            logger.error(f"Error occurred while checking ownership for room={room_id}, user={user_id}: {e}")
+            return False

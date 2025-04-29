@@ -170,7 +170,7 @@ class WordChallenge:
             raise
 
     @staticmethod
-    def check_answer(challenge_id, answer):
+    def check_answer(challenge_id, user_id, answer):
         """验证用户答案"""
         try:
             # 获取挑战信息
@@ -188,7 +188,7 @@ class WordChallenge:
             user_answer = answer.lower().strip()
             
             # 记录答题记录
-            WordChallenge.record_attempt(challenge_id, user_answer, correct_answer == user_answer)
+            WordChallenge.record_attempt(challenge_id, user_id, user_answer, correct_answer == user_answer)
 
             if correct_answer == user_answer:
                 return {
@@ -205,17 +205,17 @@ class WordChallenge:
                 }
 
         except Exception as e:
-            logger.error(f"Failed to check answer for challenge {challenge_id}: {str(e)}", exc_info=True)
+            logger.error(f"Failed to check submitted_word for challenge {challenge_id}: {str(e)}", exc_info=True)
             return {'correct': False, 'message': '验证答案时发生错误'}
 
     @staticmethod
-    def record_attempt(challenge_id, answer, is_correct):
+    def record_attempt(challenge_id, user_id, answer, is_correct):
         """记录答题记录"""
         sql = """
-        INSERT INTO ChallengeAttempts (challenge_id, answer, is_correct, attempted_at)
-        VALUES (%s, %s, %s, %s)
+        INSERT INTO ChallengeAttempts (challenge_id, user_id, submitted_word, is_correct, timestamp)
+        VALUES (%s, %s, %s, %s, %s)
         """
         try:
-            insert(sql, (challenge_id, answer, is_correct, datetime.utcnow()))
+            insert(sql, (challenge_id, user_id, answer, is_correct, datetime.utcnow()))
         except Exception as e:
             logger.error(f"Failed to record attempt for challenge {challenge_id}: {str(e)}", exc_info=True)

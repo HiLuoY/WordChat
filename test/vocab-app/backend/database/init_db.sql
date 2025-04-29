@@ -51,9 +51,7 @@ CREATE TABLE IF NOT EXISTS Messages (
 CREATE TABLE IF NOT EXISTS Words (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '单词ID(主键, 自增)',
     word VARCHAR(255) NOT NULL COMMENT '单词',
-    meaning TEXT NOT NULL COMMENT '含义',
-    hint TEXT COMMENT '提示',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间'
+    meaning TEXT NOT NULL COMMENT '含义'
 ) COMMENT='单词表';
 
 -- 单词挑战表
@@ -73,9 +71,9 @@ CREATE TABLE IF NOT EXISTS ChallengeAttempts (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '记录ID(主键, 自增)',
     challenge_id INT UNSIGNED NOT NULL COMMENT '挑战ID(外键)',
     user_id INT UNSIGNED NOT NULL COMMENT '用户ID(外键)',
-    answer VARCHAR(255) NOT NULL COMMENT '用户答案',
+    submitted_word VARCHAR(255) NOT NULL COMMENT '用户答案',
     is_correct BOOLEAN NOT NULL COMMENT '是否正确',
-    attempted_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '答题时间',
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '答题时间',
     FOREIGN KEY (challenge_id) REFERENCES WordChallenges(id),
     FOREIGN KEY (user_id) REFERENCES Users(id)
 ) COMMENT='用户挑战记录表';

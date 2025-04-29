@@ -1,3 +1,4 @@
+import pandas as pd
 from database.db_utils import insert, query, update, delete
 from datetime import datetime
 import logging

@@ -6,7 +6,7 @@ import secrets
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from flask_cors import CORS
-
+import eventlet
 
 # 导入数据模型
 # from models.user_model import User
@@ -18,8 +18,7 @@ from flask_cors import CORS
 
 # 导入控制器
 from controllers.room_controller import room_bp  # 房间控制器
-from challenges import challenge_bp  # 单词挑战蓝图
-from controllers.user_manage import user_bp
+from challenges import challenge_api,init_socketio # 单词挑战蓝图
 from controllers.auth_controller import auth_bp  # 用户认证蓝图
 
 from ws_events.chat_events import register_chat_events
@@ -40,12 +39,12 @@ app.secret_key = secrets.token_hex(32)
 app.config['SESSION_TYPE'] = 'filesystem'
 
 # 初始化WebSocket
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
-
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet',supports_credentials=True)
+# 初始化SocketIO实例并传递给challenges_edit.py
+init_socketio(socketio)
 # 注册蓝图
 app.register_blueprint(room_bp)  # 注册房间相关路由
-app.register_blueprint(challenge_bp)  # 注册单词挑战相关路由
-app.register_blueprint(user_bp)  #注册用户管理相关路由
+app.register_blueprint(challenge_api)  # 注册单词挑战相关路由
 app.register_blueprint(auth_bp)  # 用户注册认证路由
 
 # 登录验证装饰器
@@ -68,10 +67,10 @@ def test():
     """测试页面路由"""
     return render_template('test.html')
 
-@app.route('/register')
+@app.route('/upload')
 def upload_page():
     """显示上传页面"""
-    return render_template('register.html')
+    return render_template('upload.html')
 
 #--------------注册登录 -----------------
 
