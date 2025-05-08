@@ -5,23 +5,24 @@ from models.Leaderboard_model import Leaderboard  # 导入 Leaderboard 类
 rankinglist_bp = Blueprint('rankinglist', __name__)
 
 @rankinglist_bp.route('/update', methods=['POST'])
-def update_score():
-    """更新用户分数"""
-    data = request.get_json()
-    required_fields = ['room_id', 'user_id', 'score_delta']
-    
-    # 验证请求参数
-    if not all(field in data for field in required_fields):
-        return jsonify({"error": "Missing required fields"}), 400
-    
-    # 调用 Leaderboard 方法
-    success = Leaderboard.update_score(
-        room_id=data['room_id'],
-        user_id=data['user_id'],
-        score_delta=data['score_delta']
-    )
-    
-    return jsonify({"success": success}), 200 if success else 500
+def update_score(room_id, user_id, delta):
+    try:
+        # 获取当前用户在房间中的分数
+        user_score = Leaderboard.query.filter_by(room_id=room_id, user_id=user_id).first()
+        
+        if user_score:
+            user_score.score += delta
+        else:
+            # 如果用户没有分数记录，创建一个新的记录
+            new_score = Leaderboard(room_id=room_id, user_id=user_id, score=delta)
+            db.session.add(new_score)
+        
+        db.session.commit()
+        return True
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"更新分数失败: {str(e)}")
+        return False
 
 @rankinglist_bp.route('/<int:room_id>', methods=['GET'])
 def get_room_leaderboard(room_id):

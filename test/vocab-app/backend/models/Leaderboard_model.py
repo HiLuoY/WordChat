@@ -41,34 +41,38 @@ class Leaderboard:
         connection = get_db_connection()
         try:
             with connection.cursor() as cursor:
+                # 在 Leaderboard.get_room_leaderboard 方法中
                 sql = """
-                    SELECT u.nickname, l.score, l.updated_at 
-                    FROM Leaderboard l
-                    JOIN Users u ON l.user_id = u.id
-                    WHERE l.room_id = %s
-                    ORDER BY l.score DESC
-                    LIMIT %s
-                """
+                SELECT 
+                    u.nickname, 
+                    l.score, 
+                    DATE_FORMAT(l.updated_at, '%%Y-%%m-%%dT%%H:%%i:%%sZ') AS updated_at,
+                    l.user_id
+                FROM Leaderboard l
+                INNER JOIN Users u ON l.user_id = u.id
+                WHERE l.room_id = %s
+                ORDER BY l.score DESC
+                LIMIT %s
+            """
                 cursor.execute(sql, (room_id, limit))
+                print(f"执行查询：{sql % (room_id, limit)}")
                 return cursor.fetchall()
         except Exception as e:
             print(f"获取排行榜失败: {e}")
             return None
         finally:
             connection.close()
-
     @staticmethod
     def get_user_rank(room_id, user_id):
         """
         获取用户在房间中的排名
         :param room_id: 房间ID
         :param user_id: 用户ID
-        :return: 排名（从1开始）或None（如果无记录）
+        :return: 排名（从1开始）或 None（如果无记录）
         """
         connection = get_db_connection()
         try:
             with connection.cursor() as cursor:
-                # 使用子查询计算排名
                 sql = """
                     SELECT position FROM (
                         SELECT 
@@ -81,13 +85,18 @@ class Leaderboard:
                 """
                 cursor.execute(sql, (room_id, user_id))
                 result = cursor.fetchone()
-                return result[0] if result else None
+                if result and 'position' in result:
+                    rank = result['position']
+                    print(f"获取用户排名成功: room_id={room_id}, user_id={user_id}, rank={rank}")
+                    return rank
+                else:
+                    print(f"获取用户排名失败: room_id={room_id}, user_id={user_id}, result={result}")
+                    return None
         except Exception as e:
-            print(f"获取用户排名失败: {e}")
+            print(f"获取用户排名失败: room_id={room_id}, user_id={user_id}, error={e}")
             return None
         finally:
             connection.close()
-
     @staticmethod
     def reset_room_leaderboard(room_id):
         """
@@ -107,3 +116,96 @@ class Leaderboard:
             return False
         finally:
             connection.close()
+
+    @staticmethod
+    def get_user_score(room_id, user_id):
+        """
+        获取用户在房间中的当前分数
+        :param room_id: 房间ID
+        :param user_id: 用户ID
+        :return: 用户的当前分数，如果用户不存在于排行榜中，则返回0
+        """
+        connection = get_db_connection()
+        try:
+            with connection.cursor() as cursor:
+                sql = "SELECT score FROM Leaderboard WHERE room_id = %s AND user_id = %s"
+                cursor.execute(sql, (room_id, user_id))
+                result = cursor.fetchone()
+                return result['score'] if result else 0
+        except Exception as e:
+            print(f"获取用户分数失败: {e}")
+            return 0
+        finally:
+            connection.close()
+
+    @staticmethod
+    def initialize_user_score(room_id, user_id):
+        """
+        初始化用户在房间中的分数为0（不存在时创建，存在时重置为0）
+        :param room_id: 房间ID 
+        :param user_id: 用户ID
+        :return: 成功返回True，失败返回False
+        """
+        print(f"[DEBUG] 开始初始化分数 | room_id={room_id} user_id={user_id}")
+
+        connection = None
+         # 确保 room_id 和 user_id 是整数
+        try:
+            room_id = int(room_id)
+            user_id = int(user_id)
+        except ValueError:
+            print(f"初始化用户分数失败: room_id 或 user_id 无法转换为整数")
+            return False
+
+        try:
+            # 验证参数有效性
+            if not all([isinstance(room_id, int), isinstance(user_id, int)]):
+                print(f"[ERROR] 参数类型错误 | room_id类型={type(room_id)} user_id类型={type(user_id)}")
+                return False
+
+            connection = get_db_connection()
+            with connection.cursor() as cursor:
+                # 构建SQL语句
+                sql = """
+                    INSERT INTO Leaderboard (room_id, user_id, score)
+                    VALUES (%s, %s, 0)
+                    ON DUPLICATE KEY UPDATE score = 0
+                """
+                params = (room_id, user_id)
+                
+                print(f"[SQL] 执行语句: {sql % params}")
+
+                # 执行SQL并获取影响行数
+                affected_rows = cursor.execute(sql, params)
+                connection.commit()
+                
+                print(f"[SUCCESS] 操作成功 | 影响行数={affected_rows}")
+                return True
+
+        except pymysql.MySQLError as e:  # 假设使用PyMySQL驱动
+            error_code, error_msg = e.args
+            print(f"""
+[ERROR] 数据库操作失败
+┣ 错误代码：{error_code}
+┣ 错误信息：{error_msg}
+┣ 完整参数：room_id={room_id} user_id={user_id}
+┗ 堆栈跟踪：{traceback.format_exc()}
+            """)
+            if connection:
+                connection.rollback()
+            return False
+
+        except Exception as e:
+            print(f"[CRITICAL] 未知错误: {str(e)}")
+            return False
+
+        finally:
+            if connection:
+                try:
+                    connection.close()
+                    print("[CONN] 数据库连接已关闭")
+                except Exception as e:
+                    print(f"[WARNING] 关闭连接失败: {str(e)}")
+
+
+    

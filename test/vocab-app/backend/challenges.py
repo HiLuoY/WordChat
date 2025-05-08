@@ -1,123 +1,30 @@
-from flask import Blueprint, request, jsonify
+import random
+from flask import Blueprint, request, jsonify, current_app,session
 from models.wordchallenge_models import WordChallenge
 from models.word_model import Word
 from datetime import datetime
 import logging
-from flask_socketio import emit
-from flask import session
+from flask_socketio import SocketIO,emit
 from database.db_utils import query
+import threading
+import eventlet
+from redis_utils import get_room_state, set_room_state, del_room_state
+# 配置日志记录器
+logger = logging.getLogger("challenge_logger")
+logger.setLevel(logging.ERROR)  # 设置日志级别为ERROR
+handler = logging.StreamHandler()  # 创建控制台输出处理器
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')  # 定义日志格式
+handler.setFormatter(formatter)
+logger.addHandler(handler)  # 将处理器添加到日志记录器
 
-# 创建蓝图对象
-challenge_bp = Blueprint('challenges', __name__, url_prefix='/challenges')
-logger = logging.getLogger(__name__)
+challenge_api = Blueprint("challenge_api", __name__)
 
-@challenge_bp.route('/words', methods=['GET'])
-def get_words():
-    """获取所有单词列表"""
-    try:
-        logger.info('开始获取单词列表')
-        words = Word.get_all_words()
-        logger.info(f'成功获取到 {len(words)} 个单词')
-        return jsonify({
-            'status': 'success',
-            'words': words
-        })
-    except Exception as e:
-        logger.error(f'获取单词列表失败: {str(e)}')
-        return jsonify({
-            'status': 'error',
-            'message': '获取单词列表失败'
-        }), 500
+socketio = None  # 全局变量，用于存储SocketIO实例
 
-'''
-@challenge_bp.route('/create', methods=['POST'])
-def create_challenge():
-    """创建新挑战（增强版）"""
-    try:
-        # ========== 1. 参数验证 ==========
-        data = request.get_json()
-        logger.info(f"[挑战创建] 原始请求数据: {data}")
-
-        if not data or 'room_id' not in data or 'word_id' not in data:
-            logger.error("[挑战创建] 缺少必要参数")
-            return jsonify({'code': 400, 'message': '缺少room_id或word_id'}), 400
-
-        # 强制类型转换
-        try:
-            room_id = int(data['room_id'])
-            word_id = int(data['word_id'])
-        except ValueError as e:
-            logger.error(f"[挑战创建] 参数类型错误: {e}")
-            return jsonify({'code': 400, 'message': 'room_id和word_id必须是整数'}), 400
-
-        logger.info(f"[挑战创建] 转换后参数: room_id={room_id}, word_id={word_id}")
-
-        # ========== 2. 会话验证 ==========
-        user_id = session.get('user_id')
-        if not user_id:
-            logger.error("[挑战创建] 用户未登录，当前session: %s", session)
-            return jsonify({'code': 401, 'message': '请先登录'}), 401
-
-        # ========== 3. 权限验证 ==========
-        from models.room_model import Room
-        room = Room.get_room_by_id(room_id)
-        if not room:
-            logger.error("[挑战创建] 房间不存在: room_id=%s", room_id)
-            return jsonify({'code': 404, 'message': '房间不存在'}), 404
-
-        if int(room['owner_id']) != int(user_id):
-            logger.error(
-                "[挑战创建] 权限拒绝 | 房主ID: %s | 当前用户ID: %s",
-                room['owner_id'],
-                user_id
-            )
-            return jsonify({'code': 403, 'message': '只有房主可以创建挑战'}), 403
-
-        # ========== 4. 数据验证 ==========
-        word = Word.get_word_by_id(word_id)
-        if not word:
-            logger.error("[挑战创建] 单词不存在: word_id=%s", word_id)
-            return jsonify({'code': 404, 'message': '单词不存在'}), 404
-
-        # ========== 5. 创建挑战 ==========
-        logger.info("[挑战创建] 开始创建挑战...")
-        challenge_id = WordChallenge.create_challenge(
-            room_id=room_id,
-            word_id=word_id,
-            round_number=data.get('round_number', 1)
-        )
-
-        if not challenge_id:
-            logger.error("[挑战创建] 数据库插入失败")
-            return jsonify({'code': 500, 'message': '创建挑战失败'}), 500
-
-        logger.info("[挑战创建] 挑战创建成功: challenge_id=%s", challenge_id)
-
-        # ========== 6. WebSocket通知 ==========
-        try:
-            emit('challenge_created', {
-                'challenge_id': challenge_id,
-                'word_meaning': word['meaning'],
-                'start_time': datetime.utcnow().isoformat()
-            }, room=str(room_id), namespace='/')
-        except Exception as e:
-            logger.error("[挑战创建] WebSocket通知失败: %s", str(e))
-
-        return jsonify({
-            'code': 201,
-            'message': '挑战创建成功',
-            'data': {
-                'challenge_id': challenge_id,
-                'word': word['word']
-            }
-        }), 201
-
-    except Exception as e:
-        logger.error("[挑战创建] 全局异常: %s", str(e), exc_info=True)
-        return jsonify({'code': 500, 'message': '服务器内部错误'}), 500
-'''
-
-@challenge_bp.route('/create', methods=['POST'])
+def init_socketio(sio):
+    global socketio
+    socketio = sio
+@challenge_api.route('/api/challenge/create', methods=['POST'])
 def create_challenge():
     """创建新挑战（严格校验版）"""
     try:
@@ -125,17 +32,21 @@ def create_challenge():
         data = request.get_json()
         logger.info(f"[挑战创建] 请求数据: {data}")
         
-        if not data or 'room_id' not in data or 'word_id' not in data:
-            logger.error("缺少必要参数: room_id 或 word_id")
+        if not data or 'room_id' not in data or 'num_words' not in data:
+            logger.error("缺少必要参数: room_id 或 num_words")
             return jsonify({'code': 400, 'message': '参数不完整'}), 400
 
         # ===== 2. 类型转换 =====
         try:
             room_id = int(data['room_id'])
-            word_id = int(data['word_id'])
+            num_words = int(data['num_words'])
         except ValueError as e:
             logger.error(f"参数类型错误: {e}")
             return jsonify({'code': 400, 'message': '参数需为整数'}), 400
+
+        if num_words <= 0:
+            logger.error("num_words 必须为正整数")
+            return jsonify({'code': 400, 'message': 'num_words 必须为正整数'}), 400
 
         # ===== 3. 会话验证 =====
         user_id = session.get('user_id')
@@ -154,34 +65,41 @@ def create_challenge():
             logger.error("权限拒绝 | 房主ID: %s vs 当前用户: %s", room['owner_id'], user_id)
             return jsonify({'code': 403, 'message': '仅房主可创建挑战'}), 403
 
-        # ===== 5. 单词验证 =====
-        word = Word.get_word_by_id(word_id)
-        if not word:
-            logger.error("单词不存在: word_id=%s", word_id)
-            return jsonify({'code': 404, 'message': '单词不存在'}), 404
-        logger.info("验证通过，开始创建挑战...")
+        # ===== 5. 获取单词库 =====
+        all_words = Word.get_all_words()
+        if len(all_words) < num_words:
+            logger.error("单词库不足: 需要 %d 个单词，但只有 %d 个单词", num_words, len(all_words))
+            return jsonify({'code': 400, 'message': '单词库不足'}), 400
 
-        # ===== 6. 创建挑战 =====
-        challenge_id = WordChallenge.create_challenge(
-            room_id=room_id,
-            word_id=word_id,
-            round_number=data.get('round_number', 1)
-        )
-        if not challenge_id:
-            logger.error("数据库插入失败")
-            return jsonify({'code': 500, 'message': '挑战创建失败'}), 500
+        # ===== 6. 随机选取单词 =====
+        selected_words = random.sample(all_words, num_words)
+        word_ids = [word['id'] for word in selected_words]
 
-        # ===== 7. WebSocket通知 =====
-        # 修改WebSocket通知部分代码
+        # ===== 7. 创建挑战 =====
+        challenge_ids = []
+        for i, word_id in enumerate(word_ids):
+            challenge_id = WordChallenge.create_challenge(
+                room_id=room_id,
+                word_id=word_id,
+                round_number=i + 1
+            )
+            challenge_ids.append(challenge_id)
+
+        logger.info(f"[挑战创建] 成功创建 {len(challenge_ids)} 个挑战: {challenge_ids}")
+
+        # 初始化房间状态
+        room_state = {
+            "challenge_ids": challenge_ids,
+            "current_index": 0,
+            "current_answers": {},
+            "start_time": datetime.utcnow().isoformat(),
+            "status": "playing"
+        }
+        set_room_state(room_id, room_state)
+        # ===== 8. WebSocket通知 =====
         try:
-            correct_meaning = word['meaning']
-            logger.info(f"[WebSocket消息验证] 发送内容: {correct_meaning}")  # 新增关键日志
-            
-            emit('challenge_created', {
-                'challenge_id': challenge_id,
-                'word_meaning': correct_meaning,  # 确保使用确定字段
-                'start_time': datetime.utcnow().isoformat()
-            }, room=str(room_id), namespace='/')
+            # for i, challenge_id in enumerate(challenge_ids):
+            send_word_and_answer(room_id, challenge_ids, 0)
         except Exception as e:
             logger.error(f"WebSocket错误详情: {str(e)}", exc_info=True)
 
@@ -189,265 +107,90 @@ def create_challenge():
             'code': 201,
             'message': '挑战创建成功',
             'data': {
-                'challenge_id': challenge_id,
-                'word': word['word'],
-                'meaning': word.get('definition', '')  # 返回字段供调试
+                'challenge_ids': challenge_ids,
+                'num_words': num_words
+            }
+        }), 201
+        #==============排行榜相关逻辑=============
+         # 初始化排行榜数据
+        room_id = data['room_id']
+        users = RoomMember.get_all_members(room_id)
+        for user in users:
+            current_score = get_user_score(room_id, user['user_id'])
+            if current_score == 0:
+                update_score(room_id, user['user_id'], 0)
+
+        return jsonify({
+            'code': 201,
+            'message': '挑战创建成功',
+            'data': {
+                'challenge_ids': challenge_ids,
+                'num_words': num_words
             }
         }), 201
 
     except Exception as e:
         logger.error("全局异常: %s", str(e), exc_info=True)
         return jsonify({'code': 500, 'message': '服务器内部错误'}), 500
-@challenge_bp.route('/<int:challenge_id>', methods=['GET'])
-def get_challenge(challenge_id):
-    """获取指定挑战详情"""
-    try:
-        challenge = WordChallenge.get_challenge_by_id(challenge_id)
-        if not challenge:
-            return jsonify({'code': 404, 'message': '挑战不存在'}), 404
-            
-        # 转换datetime对象为字符串
-        challenge['started_at'] = challenge['started_at'].isoformat()  
-        return jsonify({
-            'code': 200,
-            'data': challenge
-        })
-    except Exception as e:
-        logger.error(f"获取挑战失败: {str(e)}")
-        return jsonify({'code': 500, 'message': '服务器内部错误'}), 500
 
-@challenge_bp.route('/current/<int:room_id>', methods=['GET'])
-def get_current_challenge(room_id):
-    """获取房间当前挑战"""
-    try:
-        challenge = WordChallenge.get_current_challenge(room_id)
-        if not challenge:
-            return jsonify({'code': 404, 'message': '当前没有进行中的挑战'}), 404
-            
-        challenge['started_at'] = challenge['started_at'].isoformat()
-        return jsonify({
-            'code': 200,
-            'data': challenge
-        })
-    except Exception as e:
-        logger.error(f"获取当前挑战失败: {str(e)}")
-        return jsonify({'code': 500, 'message': '服务器内部错误'}), 500
 
-@challenge_bp.route('/history/<int:room_id>', methods=['GET'])
-def get_challenge_history(room_id):
-    """获取房间挑战历史"""
-    try:
-        limit = request.args.get('limit', default=10, type=int)
-        challenges = WordChallenge.get_challenges_by_room(room_id, limit)
-        
-        # 格式化时间字段
-        for c in challenges:
-            c['started_at'] = c['started_at'].isoformat()
-            
-        return jsonify({
-            'code': 200,
-            'data': {
-                'total': len(challenges),
-                'challenges': challenges
-            }
-        })
-    except Exception as e:
-        logger.error(f"获取挑战历史失败: {str(e)}")
-        return jsonify({'code': 500, 'message': '服务器内部错误'}), 500
+def send_word_and_answer(room_id, challenge_ids, index=0):
+        print(f"DEBUG: 准备发送 reveal_word，房间ID={room_id}")  # 调试日志
+        if index >= len(challenge_ids):
+            logger.info(f"[定时器] 所有单词已展示完毕，房间ID: {room_id}")
+            socketio.emit('challenge_end', room=str(room_id))
+            # 清除房间状态
+            del_room_state(room_id)
+            return
+        # 更新当前索引
+        room_state = get_room_state(room_id)
+        if room_state:
+            room_state["current_index"] = index
+            set_room_state(room_id, room_state)
 
-@challenge_bp.route('/<int:challenge_id>/status', methods=['PUT'])
-def update_challenge_status(challenge_id):
-    """更新挑战状态"""
-    try:
-        data = request.get_json()
-        if not data or 'status' not in data:
-            return jsonify({'code': 400, 'message': '缺少状态参数'}), 400
-
-        success = WordChallenge.update_challenge_status(
-            challenge_id, 
-            data['status']
-        )
-        return jsonify({
-            'code': 200 if success else 400,
-            'message': '状态更新成功' if success else '状态更新失败'
-        })
-    except ValueError as ve:
-        return jsonify({'code': 400, 'message': str(ve)}), 400
-    except Exception as e:
-        logger.error(f"更新挑战状态失败: {str(e)}")
-        return jsonify({'code': 500, 'message': '服务器内部错误'}), 500
-
-@challenge_bp.route('/<int:challenge_id>/round', methods=['PUT'])
-def increment_round(challenge_id):
-    """增加挑战轮次"""
-    try:
-        success = WordChallenge.increment_round(challenge_id)
-        return jsonify({
-            'code': 200 if success else 400,
-            'message': '轮次增加成功' if success else '轮次增加失败'
-        })
-    except Exception as e:
-        logger.error(f"增加轮次失败: {str(e)}")
-        return jsonify({'code': 500, 'message': '服务器内部错误'}), 500
-
-@challenge_bp.route('/<int:challenge_id>/finish', methods=['PUT'])
-def finish_challenge(challenge_id):
-    """结束挑战"""
-    try:
-        success = WordChallenge.finish_challenge(challenge_id)
-        return jsonify({
-            'code': 200 if success else 400,
-            'message': '挑战已结束' if success else '结束挑战失败'
-        })
-    except Exception as e:
-        logger.error(f"结束挑战失败: {str(e)}")
-        return jsonify({'code': 500, 'message': '服务器内部错误'}), 500
-
-@challenge_bp.route('/<int:challenge_id>/word', methods=['GET'])
-def get_challenge_word(challenge_id):
-    """获取挑战对应的单词"""
-    try:
+        challenge_id = challenge_ids[index]
         word = WordChallenge.get_challenge_word(challenge_id)
-        if not word:
-            return jsonify({'code': 404, 'message': '未找到相关单词'}), 404
-            
-        return jsonify({
-            'code': 200,
-            'data': word
-        })
-    except Exception as e:
-        logger.error(f"获取挑战单词失败: {str(e)}")
-        return jsonify({'code': 500, 'message': '服务器内部错误'}), 500
+        if word:
+            # 广播单词释义
+            print(f"DEBUG: 正在发送单词: {word['word']}")  # 调试日志
+            socketio.emit('reveal_word', {
+                'challenge_id': challenge_id,
+                'word_meaning': word['meaning'],
+                'display_time': 0  # 单词展示时间（秒）
+            }, room=str(room_id))
+            print(f"DEBUG: 已发送 reveal_word 事件到房间 {room_id}")  # 确认发送  
+            logger.info(f"[定时器] 广播单词: {word['word']}，房间ID: {room_id}")
 
-@challenge_bp.route('/word', methods=['POST'])
-def create_word():
-    """创建新单词"""
-    try:
-        data = request.get_json()
-        if not data or 'word' not in data or 'meaning' not in data:
-            return jsonify({'code': 400, 'message': '缺少必要参数'}), 400
+            # 设置单词展示时间
+            socketio.sleep(30)
+            print(f"DEBUG: socketio 单词展示恢复 事件在房间 {room_id}")  # 确认发送  
+            send_answer(room_id, challenge_ids, index)
+            
+        else:
+            logger.error(f"单词挑战不存在: {challenge_id}")
 
-        word_id = Word.create_word(
-            word=data['word'],
-            meaning=data['meaning'],
-            hint=data.get('hint')  # 使用 get 方法安全获取，可能为 None
-        )
-        return jsonify({
-            'code': 201,
-            'message': '单词创建成功',
-            'data': {'word_id': word_id}
-        }), 201
-    except Exception as e:
-        logger.error(f"创建单词失败: {str(e)}")
-        return jsonify({'code': 500, 'message': '服务器内部错误'}), 500
 
-@challenge_bp.route('/current/<int:room_id>/answer', methods=['POST'])
-def submit_answer(room_id):
-    """提交答案"""
-    try:
-        data = request.get_json()
-        if not data or 'answer' not in data:
-            return jsonify({'code': 400, 'message': '缺少答案参数'}), 400
+def send_answer(room_id, challenge_ids, index=0):
+        challenge_id = challenge_ids[index]
+        word = WordChallenge.get_challenge_word(challenge_id)
+        if word:
+            # 更新当前答案状态
+            room_state = get_room_state(room_id)
+            if room_state:
+                room_state["current_word"] = word['word']
+                set_room_state(room_id, room_state)
+            # 广播答案
+            socketio.emit('reveal_answer', {
+                'challenge_id': challenge_id,
+                'word': word['word'],
+                'start_time': datetime.utcnow().isoformat(),
+                'answer_time': 5  # 答案展示时间（秒）
+            }, room=str(room_id))
+            logger.info(f"[定时器] 广播答案: {word['word']}，房间ID: {room_id}")
 
-        # 获取当前挑战
-        challenge = WordChallenge.get_current_challenge(room_id)
-        if not challenge:
-            return jsonify({'code': 404, 'message': '当前没有进行中的挑战'}), 404
-
-        # 验证答案
-        result = WordChallenge.check_answer(challenge['id'], data['answer'])
-        return jsonify({
-            'code': 200,
-            'data': result
-        })
-    except Exception as e:
-        logger.error(f"提交答案失败: {str(e)}")
-        return jsonify({'code': 500, 'message': '服务器内部错误'}), 500
-
-@challenge_bp.route('/import', methods=['POST'])
-def import_words():
-    """导入单词"""
-    try:
-        if 'file' not in request.files:
-            logger.error("没有上传文件")
-            return jsonify({'code': 400, 'message': '请选择要上传的文件'}), 400
-            
-        file = request.files['file']
-        if not file.filename.endswith('.csv'):
-            logger.error("不支持的文件类型")
-            return jsonify({'code': 400, 'message': '只支持CSV文件'}), 400
-            
-        # 清空现有单词表
-        try:
-            logger.info("开始清空单词表...")
-            # 先检查单词表是否存在
-            check_table_sql = "SHOW TABLES LIKE 'words'"
-            from database.db_utils import query
-            tables = query(check_table_sql)
-            if not tables:
-                logger.error("单词表不存在")
-                return jsonify({'code': 500, 'message': '单词表不存在'}), 500
-                
-            # 获取当前单词数量
-            count_sql = "SELECT COUNT(*) as count FROM words"
-            result = query(count_sql)
-            current_count = result[0]['count']
-            logger.info(f"当前单词表中有 {current_count} 个单词")
-            
-            # 先删除wordchallenges表中的记录
-            delete_challenges_sql = "DELETE FROM wordchallenges"
-            from database.db_utils import delete
-            delete(delete_challenges_sql)
-            logger.info("已删除wordchallenges表中的记录")
-            
-            # 然后清空单词表
-            delete_words_sql = "DELETE FROM words"
-            delete(delete_words_sql)
-            logger.info("单词表已清空")
-        except Exception as e:
-            logger.error(f"清空单词表失败: {str(e)}", exc_info=True)
-            return jsonify({'code': 500, 'message': f'清空单词表失败: {str(e)}'}), 500
-            
-        # 读取CSV文件
-        import csv
-        import io
-        content = file.stream.read().decode("UTF8")
-        stream = io.StringIO(content, newline=None)
-        
-        # 使用csv.reader而不是DictReader，因为我们不需要列名
-        csv_reader = csv.reader(stream)
-        
-        # 导入单词
-        success_count = 0
-        for row in csv_reader:
-            try:
-                if len(row) < 2:  # 确保至少有两个字段
-                    logger.warning(f"跳过无效行: {row}")
-                    continue
-                    
-                word = row[0].strip()
-                meaning = row[1].strip()
-                
-                if not word or not meaning:
-                    logger.warning(f"跳过无效行: word={word}, meaning={meaning}")
-                    continue
-                    
-                Word.create_word(word, meaning)
-                success_count += 1
-                logger.info(f"成功导入单词: {word}")
-            except Exception as e:
-                logger.error(f"导入单词失败: {str(e)}")
-                continue
-                
-        if success_count == 0:
-            logger.error("没有成功导入任何单词")
-            return jsonify({'code': 400, 'message': '没有成功导入任何单词'}), 400
-            
-        logger.info(f"成功导入 {success_count} 个单词")
-        return jsonify({
-            'code': 200,
-            'message': f'成功导入 {success_count} 个单词'
-        })
-    except Exception as e:
-        logger.error(f"导入单词失败: {str(e)}", exc_info=True)
-        return jsonify({'code': 500, 'message': f'导入单词失败: {str(e)}'}), 500 
+            # 设置答案展示时间
+            socketio.sleep(5)
+            WordChallenge.finish_challenge(challenge_id)
+            send_word_and_answer(room_id, challenge_ids, index + 1)
+        else:
+            logger.error(f"单词挑战不存在: {challenge_id}")

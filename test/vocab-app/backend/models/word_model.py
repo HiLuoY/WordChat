@@ -1,3 +1,4 @@
+import pandas as pd
 from database.db_utils import insert, query, update, delete
 from datetime import datetime
 import logging
@@ -133,34 +134,6 @@ class Word:
         except Exception as e:
             logger.error(f"获取所有单词失败: {str(e)}", exc_info=True)
             raise 
-
-
-    @staticmethod
-    def import_from_csv(csv_file_path):
-        """从CSV文件导入单词"""
-        try:
-            # 读取 CSV 文件
-            df = pd.read_csv(csv_file_path, header=None, names=['word', 'meaning'], nrows=100)
-            logger.info(f"Reading CSV file: {csv_file_path}, found {len(df)} records")
-            
-            # 准备 SQL 插入语句
-            insert_query = "INSERT INTO Words (word, meaning) VALUES (%s, %s)"
-            success_count = 0
-            
-            # 为 DataFrame 中的每一行执行插入操作
-            for index, row in df.iterrows():
-                try:
-                    insert(insert_query, (row['word'], row['meaning']))
-                    success_count += 1
-                except Exception as e:
-                    logger.warning(f"Failed to import word {row['word']}: {str(e)}")
-            
-            logger.info(f"Data import completed. Successfully imported {success_count}/{len(df)} words")
-            return success_count
-        except Exception as e:
-            logger.error(f"Failed to import from CSV {csv_file_path}: {str(e)}", exc_info=True)
-            raise
-
 
     @staticmethod
     def add_word(word, meaning):

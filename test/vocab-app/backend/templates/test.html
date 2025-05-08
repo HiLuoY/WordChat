@@ -31,7 +31,7 @@
 
     <div id="challenge-container" class="hidden">
         <h2>挑战中...</h2>
-        <p>当前单词：<span id="word-display">等待开始</span></p>
+        <p>当前单词释义：<span id="word-meaning">等待开始</span></p>
         <input type="text" id="answer" placeholder="输入你的答案">
         <button class="button" onclick="submitAnswer()">提交答案</button>
         <p id="feedback"></p>
@@ -54,7 +54,6 @@
                 socket.emit('join', { room_id: roomId, user_id: userId });
             });
 
-            
             // 假设后端响应 room_joined 事件
             socket.on('room_joined', (data) => {
                 console.log('房间加入成功:', data);
@@ -69,19 +68,16 @@
                 alert(msg.message || '系统提示');
             });
 
-            socket.on('next_word', (data) => {
-                document.getElementById("word-display").textContent = "请拼写此单词...";
-                document.getElementById("feedback").textContent = "";
+            socket.on('reveal_word', (data) => {
+                console.log('Received reveal_word:', data);  // 添加日志
+                document.getElementById("word-meaning").textContent = data.word_meaning;
                 document.getElementById("answer").value = "";
                 document.getElementById("answer").disabled = false;
+                document.getElementById("feedback").textContent = "";
             });
 
-            socket.on('reveal_word', (data) => {
-                document.getElementById("word-display").textContent = `${data.word}（${data.meaning}）`;
-            });
-
-            socket.on('answer_feedback', (data) => {
-                document.getElementById("feedback").textContent = data.correct ? "✅ 正确" : `❌ 错误！你输入了 ${data.mask}`;
+            socket.on('reveal_answer', (data) => {
+                document.getElementById("feedback").textContent = `正确答案: ${data.word}`;
                 document.getElementById("answer").disabled = true;
             });
 
@@ -97,18 +93,15 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     room_id: roomId,
-                    owner_id: userId,
                     num_words: numWords
                 })
             })
             .then(res => res.json())
             .then(data => {
-                if (data.challenge_id) {
-                    // 广播第一道题
-                    socket.emit('next_word', { room_id: roomId });
-                    socket.emit('start_timer', { room_id: roomId });
+                if (data.code === 201) {
+                    console.log('挑战创建成功:', data.data);
                 } else {
-                    alert(data.error || "创建挑战失败");
+                    alert(data.message || "创建挑战失败");
                 }
             });
         }

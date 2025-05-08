@@ -6,6 +6,7 @@
     <title>单词挑战聊天室</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -142,57 +143,8 @@
         .hidden {
             display: none;
         }
-        .import-section {
-            margin: 20px 0;
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-radius: 4px;
-            border: 1px solid #ddd;
-            display: none; /* 默认隐藏 */
-        }
         
-        .import-form {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .import-btn {
-            background-color: #4CAF50;
-            color: white;
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        
-        .import-btn:hover {
-            background-color: #45a049;
-        }
-        
-        .import-btn:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-        
-        .import-message {
-            margin-top: 10px;
-            padding: 10px;
-            border-radius: 4px;
-            display: none;
-        }
-        
-        .import-success {
-            background-color: #dff0d8;
-            color: #3c763d;
-            border: 1px solid #d6e9c6;
-        }
-        
-        .import-error {
-            background-color: #f2dede;
-            color: #a94442;
-            border: 1px solid #ebccd1;
-        }
+    
     </style>
 </head>
 <body>
@@ -211,6 +163,7 @@
         </div>
 
         <!-- 修改导入部分的位置，放在登录区域之后 -->
+        <!--
         <div class="import-section" id="importSection">
             <h3>导入单词</h3>
             <div class="import-form">
@@ -219,6 +172,7 @@
             </div>
             <div id="importMessage" class="import-message"></div>
         </div>
+    -->
 
         <!-- 聊天部分 -->
         <div class="chat-section hidden" id="chatSection">
@@ -244,28 +198,24 @@
         <!-- 单词挑战部分 -->
         <div class="challenge-section hidden" id="challengeSection">
             <h2>单词挑战</h2>
-            <div id="ownerControls" class="owner-controls hidden">
-                <h3>房主控制面板</h3>
+            <div id="create-section" class="hidden">
+                <h3>挑战设置（仅房主可见）</h3>
                 <div class="input-group">
-                    <select id="wordSelect" class="form-control">
-                        <option value="">请选择单词</option>
-                    </select>
+                    <input type="number" id="num-words" placeholder="默认 5 个题目" />
+                    <button onclick="createChallenge()">创建挑战</button>
                 </div>
-                <div id="wordInfo" class="hidden">
-                    <p>含义：<span id="wordMeaning"></span></p>
-                    <p>提示：<span id="wordHint"></span></p>
-                </div>
-                <button onclick="createChallenge()">创建挑战</button>
             </div>
-            <div id="playerControls">
-                <h3>玩家控制面板</h3>
+            
+            <div id="challenge-container" class="hidden">
+                <h3>挑战进行中</h3>
+                <p>当前单词释义：<span id="word-meaning">等待开始</span></p>
                 <div class="input-group">
-                    <input type="text" id="answer" placeholder="输入答案">
+                    <input type="text" id="answer" placeholder="输入你的答案">
+                    <button onclick="submitAnswer()">提交答案</button>
                 </div>
-                <button onclick="submitAnswer()">提交答案</button>
+                <p id="feedback" style="margin-top:10px;"></p>
             </div>
         </div>
-    </div>
 
     <!-- 在现有容器中添加排行榜区块 -->
     <div class="container">
@@ -300,8 +250,13 @@
             socket = io();
             
             socket.on('connect', () => {
-                console.log('已连接到服务器');
-            });
+            console.log('WebSocket 连接成功');
+            // 连接成功后重新请求排行榜数据
+            if (currentRoomId) {
+                socket.emit('request_leaderboard', { room_id: currentRoomId, limit: 10 });
+                socket.emit('get_my_ranking', { room_id: currentRoomId, user_id: sessionStorage.getItem('user_id') });
+            }
+        });
 
             socket.on('disconnect', () => {
                 console.log('与服务器断开连接');
@@ -340,17 +295,53 @@
                 // 加入排行榜房间
                 socket.emit('join_ranking_room', { room_id: data.room_id });
                 
+                
+                // 新增：主动请求排行榜数据
+                socket.emit('request_leaderboard', { 
+                    room_id: data.room_id,
+                    limit: 10 
+                });
                 // 请求个人排名
                 socket.emit('get_my_ranking', { 
                     room_id: data.room_id,
                     user_id: sessionStorage.getItem('user_id')
-        });
+                });
+
+                console.log('房间成员数据:', data);
+                console.log('当前用户ID:', sessionStorage.getItem('user_id'));
+            });
+            // 排行榜更新事件
+            socket.on('leaderboard_update', (data) => {
+                console.log('收到排行榜更新事件');
+                console.log('排行榜更新数据:', data);
+                // 打印当前时间以便排查时间差问题
+                console.log('当前时间:', new Date().toISOString());
+                updateRankingUI(data);
             });
 
+            // 个人排名响应
+            socket.on('user_ranking', (data) => {
+                console.log('收到个人排名事件');
+                console.log('个人排名数据:', data);
+                // 打印当前时间以便排查时间差问题
+                console.log('当前时间:', new Date().toISOString());
+                $('#myRank').text(data.rank || '未上榜');
+            });
+            
+           // 接收答案结果
             socket.on('answer_result', (data) => {
+                console.log('收到答案结果:', data);
                 appendMessage(`答案${data.correct ? '正确' : '错误'}: ${data.message}`, true);
-            });
 
+                // 如果答案正确，提交分数
+                if (data.correct) {
+                    // 假设每次正确回答+10分
+                    socket.emit('submit_score', {
+                        room_id: currentRoomId,
+                        delta: 10
+                    });
+                }
+            });
             socket.on('room_left', (data) => {
                 if (data.room_id === currentRoomId) {
                     currentRoomId = null;
@@ -364,20 +355,37 @@
                 }
             });
 
-            // 在 initSocket 函数中添加 ↓
-            socket.on('challenge_created', function(data) {
-                console.log('[WebSocket] 挑战创建事件:', data);
+            // 添加新的Socket事件监听（放在initSocket函数中）
+            socket.on('reveal_word', (data) => {
+                console.log('收到单词:', data);
+                $('#word-meaning').text(data.word_meaning);
+                $('#answer').val('').prop('disabled', false);
+                $('#feedback').text('');
+                $('#challenge-container').removeClass('hidden');
+                $('#answer').prop('disabled', false);
+            });
+
+            socket.on('reveal_answer', (data) => {
+                $('#feedback').text(`正确答案: ${data.word}`);
+                $('#answer').prop('disabled', true);
+            });
+
+            socket.on('challenge_end', () => {
+                appendMessage("🎉 挑战结束！房主可以开始新一轮挑战", true);
+                // 仅重置内容不隐藏容器
+                $('#word-meaning').text('等待房主开始新一轮挑战...');
+                $('#answer').val('').prop('disabled', true);
+                $('#feedback').text('');
+            });
+            socket.on('answer_feedback', (data) => {
+                const isCurrentUser = data.user_id == sessionStorage.getItem('user_id');
+                const nickname = sessionStorage.getItem('nickname');
+                const feedback = `${nickname} :${data.mask}`;
+                appendMessage(feedback, true, false, true);
                 
-                // 严格字段验证
-                if (typeof data.word_meaning === 'undefined') {
-                    console.error('字段缺失! 完整消息:', data);
-                    return;
-                }
-                
-                appendMessage(`系统挑战：${data.word_meaning}`, true);
             });
         }
-
+        const API_BASE_URL = window.location.origin; // 自动获取当前域名
         // 登录
         function login() {
             const email = $('#email').val();
@@ -397,7 +405,7 @@
                         $('#loginSection').addClass('hidden');
                         $('#chatSection').removeClass('hidden');
                         $('#challengeSection').removeClass('hidden');
-                        $('#importSection').show(); // 显示导入区域
+                        //$('#importSection').show(); // 显示导入区域
                         initSocket();
                     } else {
                         alert(response.message);
@@ -424,7 +432,7 @@
             }
 
             $.ajax({
-                url: '/rooms',
+                url: '/api/rooms',
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify({ room_name: roomName }),
@@ -475,6 +483,8 @@
             socket.emit('leave_room', {
                 room_id: currentRoomId
             });
+            $('#challenge-container').addClass('hidden');
+            $('#word-meaning').text('等待开始');
         }
         // 定义joinRoom函数
         function joinRoom() {
@@ -505,18 +515,33 @@
                 currentRoomId = data.room_id;
                 isRoomOwner = data.is_owner; // 确保从服务器返回的数据中获取房主状态
                 updateUI(); // 更新 UI
+                
                 appendMessage(`已加入房间: ${data.room_name}`, true);
-            });
+                // 主动请求排行榜数据
+                console.log('发送请求：请求排行榜数据，房间ID:', currentRoomId);
+                socket.emit('request_leaderboard', { room_id: currentRoomId, limit: 10 });
+
+                // 主动请求个人排名
+                const userId = sessionStorage.getItem('user_id');
+                console.log('发送请求：请求个人排名，用户ID:', userId, '房间ID:', currentRoomId);
+                socket.emit('get_my_ranking', { room_id: currentRoomId, user_id: sessionStorage.getItem('user_id') });
+                        });
         }
-         // 排行榜更新事件
+        // 排行榜更新事件
         socket.on('leaderboard_update', (data) => {
-            console.log('排行榜更新:', data);
+            console.log('收到排行榜更新事件');
+            console.log('排行榜更新数据:', data);
+            // 打印当前时间以便排查时间差问题
+            console.log('当前时间:', new Date().toISOString());
             updateRankingUI(data);
         });
 
         // 个人排名响应
         socket.on('user_ranking', (data) => {
-            console.log('收到个人排名:', data);
+            console.log('收到个人排名事件');
+            console.log('个人排名数据:', data);
+            // 打印当前时间以便排查时间差问题
+            console.log('当前时间:', new Date().toISOString());
             $('#myRank').text(data.rank || '未上榜');
         });
 
@@ -537,7 +562,7 @@
             console.log('发送消息:', {
                 room_id: currentRoomId,
                 content: content,
-                user_id: currentUserId,
+                user_sid: currentUserId,
                 is_owner: isRoomOwner // 显式传递房主状态
             });
 
@@ -556,181 +581,152 @@
             $('#messageInput').val('');
         }
 
-        // 加载单词列表
-        function loadWords() {
-            console.log('开始加载单词列表');
-            $.get('/challenges/words', function(response) {
-                console.log('获取到单词列表响应:', response);
-                if (response.status === 'success') {
-                    const wordSelect = $('#wordSelect');
-                    wordSelect.empty();
-                    wordSelect.append('<option value="">选择单词</option>');
-                    
-                    response.words.forEach(function(word) {
-                        console.log('添加单词选项:', word);
-                        wordSelect.append(
-  `<option value="${word.id}" data-meaning="${word.meaning}" data-hint="${word.hint || ''}">${word.word}</option>`
-);
+        
 
-                    });
-                    
-                    console.log('单词列表加载完成，选项数量:', response.words.length);
-                } else {
-                    console.error('加载单词列表失败:', response.message);
-                }
-            }).fail(function(error) {
-                console.error('加载单词列表请求失败:', error);
-            });
-        }
-
-        // 显示单词信息
-        $('#wordSelect').change(function() {
-            const selectedOption = $(this).find('option:selected');
-            if (selectedOption.val()) {
-                $('#wordMeaning').text(selectedOption.data('meaning'));
-                $('#wordHint').text(selectedOption.data('hint'));
-                $('#wordInfo').removeClass('hidden');
-            } else {
-                $('#wordInfo').addClass('hidden');
-            }
-        });
-
-        // 创建挑战
+        // 更新 createChallenge 函数
         function createChallenge() {
             if (!currentRoomId) {
                 alert('请先加入房间');
                 return;
             }
 
-            const wordId = $('#wordSelect').val();
-            if (!wordId) {
-                alert('请选择单词');
-                return;
-            }
-
-            console.log('创建挑战，参数:', {
-                room_id: currentRoomId,
-                word_id: wordId
-            });
-
+            const numWords = parseInt($('#num-words').val()) || 5;
+            // 新增：重置挑战界面
+            $('#challenge-container').removeClass('hidden');
+            $('#word-meaning').text('正在准备题目...');
+            $('#answer').val('').prop('disabled', false);
+            $('#feedback').text('');
+            
             $.ajax({
-                url: '/challenges/create',
+                url: '/api/challenge/create',
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify({
                     room_id: currentRoomId,
-                    word_id: wordId
+                    num_words: numWords
                 }),
                 success: (response) => {
                     if (response.code === 201) {
-                        // 删除旧的消息显示逻辑
-                        $('#wordSelect').val('');
-                        $('#wordInfo').addClass('hidden');
-                        appendMessage("挑战创建请求已发送", true); // 仅提示
+                        appendMessage("挑战创建成功，等待开始...", true);
+                        // 确保界面可用状态
+                        $('#answer').prop('disabled', false);
+                        $('#feedback').text('');
+                    } else {
+                        alert(response.message);
                     }
                 },
-                error: (xhr, status, error) => {
-                    console.error('创建挑战请求失败:', error);
+                error: () => {
                     alert('创建挑战失败，请重试');
                 }
             });
         }
 
-        // 提交答案
-        function submitAnswer() {
-            if (!currentRoomId) {
-                alert('请先加入房间');
-                return;
-            }
 
-            const answer = $('#answer').val();
-            if (!answer) {
-                alert('请输入答案');
-                return;
-            }
-
-            $.ajax({
-                url: `/challenges/current/${currentRoomId}/answer`,
-                method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ answer }),
-                success: (response) => {
-                    if (response.code === 200) {
-                        if (response.data.correct) {
-                            alert('回答正确！');
-                            $('#answer').val('');
-                        } else {
-                            alert(response.data.message);
-                        }
-                    } else {
-                        alert('提交答案失败：' + response.message);
-                    }
-                },
-                error: () => {
-                    alert('提交答案失败，请重试');
-                }
-            });
+     // 提交答案
+    function submitAnswer() {
+        if (!currentRoomId) {
+            alert('请先加入房间');
+            return;
         }
-        //排行榜
 
-        // 更新UI
+        const answer = $('#answer').val().trim();
+        if (!answer) {
+            alert('请输入答案');
+            return;
+        }
+
+        const userId = sessionStorage.getItem('user_id');
+        if (!userId) {
+            alert('用户ID未正确存储，请重新登录');
+            return;
+        }
+
+        console.log('提交答案:', { room_id: currentRoomId, user_id: userId, answer: answer });
+        socket.emit('submit_answer', {
+            room_id: currentRoomId,
+            user_id: userId,
+            answer: answer
+        });
+
+        // 清空输入框
+        $('#answer').val('').prop('disabled', true);
+
+        // 在 answer_result 事件处理中添加
+        socket.on('answer_result', (data) => {
+            if (data.correct) {
+                // 增加延迟确保数据同步
+                setTimeout(() => {
+                    socket.emit('request_leaderboard', { 
+                        room_id: currentRoomId,
+                        limit: 10 
+                    });
+                }, 1000);
+            }
+        });
+        
+    }
+
+        // 更新 updateUI 函数
         function updateUI() {
             console.log('更新UI,当前状态:', {
-                currentRoomId: !!currentRoomId, // 转换为布尔值方便调试
+                currentRoomId: !!currentRoomId,
                 isRoomOwner: isRoomOwner
             });
             
             
             if (currentRoomId) {
-                console.log('显示房主控制面板:', isRoomOwner);
-                $('#ownerControls').toggleClass('hidden', !isRoomOwner);
-                $('#playerControls').toggleClass('hidden', isRoomOwner);
+                $('#create-section').toggleClass('hidden', !isRoomOwner);
+                $('#challenge-container').removeClass('hidden');
                 $('#challengeSection').removeClass('hidden');
                 $('#importSection').show();
-                
-                // 如果是房主，加载单词列表
-                if (isRoomOwner) {
-                    console.log('当前用户是房主，加载单词列表');
-                    loadWords();
-                } else {
-                    console.log('当前用户不是房主');
-                }
             } else {
-                console.log('没有当前房间，隐藏所有控制面板');
                 $('#challengeSection').addClass('hidden');
-                $('#importSection').hide();
+                //$('#importSection').hide();
             }
             $('#rankingSection').toggleClass('hidden', !currentRoomId);
         }
         
-        // 更新排行榜UI
         function updateRankingUI(rankingData) {
             const container = $('#rankingList').empty();
             
+            // 如果没有排行榜数据，初始化显示当前用户的数据
+            if (!rankingData || rankingData.length === 0) {
+                const userId = sessionStorage.getItem('user_id');
+                const nickname = sessionStorage.getItem('nickname') || '匿名用户';
+                
+                rankingData = [
+                    { 
+                        user_id: userId, // 确保包含用户ID
+                        nickname: nickname, 
+                        score: 0, 
+                        updated_at: new Date() 
+                    }
+                ];
+            }
+            
+            // 获取当前用户的ID
+            const currentUserId = sessionStorage.getItem('user_id');
+            
             rankingData.forEach((item, index) => {
                 const entry = $('<div>').addClass('ranking-item');
-                entry.append($('<span>').text(index + 1));
-                entry.append($('<span>').text(item.nickname));
-                entry.append($('<span>').text(item.score));
-                entry.append($('<span>').text(
-                    new Date(item.updated_at).toLocaleTimeString()
-                ));
+                entry.append(
+                    $('<span>').text(index + 1),
+                    $('<span>').text(item.nickname || '匿名用户'),
+                    $('<span>').text(item.score || 0),
+                    $('<span>').text(moment(item.updated_at).format('HH:mm') || '-')
+                );
+                
+                // 使用用户ID进行高亮判断
+                if (item.user_id === currentUserId) {
+                    entry.css('background-color', '#e3f2fd');
+                    entry.css('font-weight', 'bold');
+                }
+                
                 container.append(entry);
             });
         }
 
-         // 在挑战成功时提交分数（示例在答案正确时调用）
-        function submitAnswer() {
-            // ...原有代码...
-            
-            if (response.data.correct) {
-                // 假设每次正确回答+10分
-                socket.emit('submit_score', {
-                    room_id: currentRoomId,
-                    delta: 10
-                });
-            }
-        }
+
 
 
         // 添加消息到聊天框
@@ -757,46 +753,6 @@
             messageDiv[0].scrollIntoView({ behavior: 'smooth', block: 'end' });
         }
 
-        // 修改导入单词的函数
-        function importWords() {
-            const fileInput = document.getElementById('csvFile');
-            const file = fileInput.files[0];
-            
-            if (!file) {
-                showImportMessage('请选择CSV文件', 'error');
-                return;
-            }
-            
-            const formData = new FormData();
-            formData.append('file', file);
-            
-            const importBtn = document.getElementById('importBtn');
-            importBtn.disabled = true;
-            
-            $.ajax({
-                url: '/challenges/import',
-                type: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function(response) {
-                    showImportMessage(response.message, 'success');
-                    // 导入成功后重新加载单词列表
-                    if (isRoomOwner) {
-                        loadWords();
-                    }
-                },
-                error: function(xhr) {
-                    const message = xhr.responseJSON ? xhr.responseJSON.message : '导入失败';
-                    showImportMessage(message, 'error');
-                },
-                complete: function() {
-                    importBtn.disabled = false;
-                    fileInput.value = ''; // 清空文件选择
-                }
-            });
-        }
-        
         function showImportMessage(message, type) {
             const messageDiv = document.getElementById('importMessage');
             messageDiv.textContent = message;

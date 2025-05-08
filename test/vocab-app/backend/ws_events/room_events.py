@@ -5,6 +5,7 @@ import logging
 from models.user_model import User
 from models.room_model import Room
 from models.room_member_model import RoomMember
+from models.Leaderboard_model import Leaderboard
 
 logger = logging.getLogger("WSRoom")
 
@@ -35,25 +36,44 @@ def register_room_events(socketio):
             emit('system_message', {'message': '房间不存在'})
             return
 
-        user = User.get_user_by_id(session['user_id'])
+        user_id = session['user_id']
+        user = User.get_user_by_id(user_id)
         if not user:
             emit('system_message', {'message': '用户不存在'})
             return
 
-        if not RoomMember.is_member(room_id, session['user_id']):
-            RoomMember.add_member(room_id, session['user_id'])
+        if not RoomMember.is_member(room_id, user_id):
+            RoomMember.add_member(room_id, user_id)
 
         join_room(str(room_id))
 
         emit('room_joined', {
             'room_id': room_id,
             'room_name': room['room_name'],
-            'is_owner': room['owner_id'] == session['user_id']
+            'is_owner': room['owner_id'] == user_id
         })
 
         emit('system_message', {
             'message': f"{user['nickname']} 加入了房间"
         }, room=str(room_id))
+        
+        # 确保用户在排行榜中有记录
+        if not Leaderboard.get_user_score(room_id, user_id):
+            Leaderboard.initialize_user_score(room_id, user_id)
+
+        # 获取排行榜数据
+        leaderboard = Leaderboard.get_room_leaderboard(room_id, limit=10)
+        if leaderboard is not None:
+            socketio.emit('leaderboard_update', leaderboard, room=str(room_id))
+        else:
+            print(f"获取排行榜失败: room_id={room_id}")
+
+        # 获取用户排名
+        rank = Leaderboard.get_user_rank(room_id, user_id)
+        if rank is not None:
+            socketio.emit('user_ranking', {'rank': rank}, room=request.sid)
+        else:
+            print(f"获取用户排名失败: room_id={room_id}, user_id={user_id}")
 
     @socketio.on('leave_room')
     def handle_leave_room(data):

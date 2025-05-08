@@ -1,0 +1,20 @@
+2025-05-08 16:25:32,469 - your_logger_name - ERROR - 提交答案失败: name 'Leaderboar' is not defined
+Traceback (most recent call last):
+  File "D:\git\WordChat\test\vocab-app\backend\ws_events\challenge_events.py", line 98, in on_submit_answer
+    Leaderboar.update_score(room_id, user_id, 10)
+NameError: name 'Leaderboar' is not defined
+2025-05-08 16:25:47,053 - your_logger_name - ERROR - 提交答案失败: name 'Leaderboar' is not defined
+Traceback (most recent call last):
+  File "D:\git\WordChat\test\vocab-app\backend\ws_events\challenge_events.py", line 98, in on_submit_answer
+    Leaderboar.update_score(room_id, user_id, 10)
+NameError: name 'Leaderboar' is not defined
+2025-05-08 16:27:55,804 - your_logger_name - ERROR - 提交答案失败: type object 'Leaderboard' has no attribute 'get_leaderboard'
+Traceback (most recent call last):
+  File "D:\git\WordChat\test\vocab-app\backend\ws_events\challenge_events.py", line 101, in on_submit_answer
+    leaderboard = Leaderboard.get_leaderboard(room_id, limit=10)
+AttributeError: type object 'Leaderboard' has no attribute 'get_leaderboard'
+2025-05-08 16:29:53,024 - your_logger_name - ERROR - 提交答案失败: name 'request' is not defined
+Traceback (most recent call last):
+  File "D:\git\WordChat\test\vocab-app\backend\ws_events\challenge_events.py", line 106, in on_submit_answer
+    socketio.emit('user_ranking', {'rank': rank}, room=request.sid)
+NameError: name 'request' is not defined
