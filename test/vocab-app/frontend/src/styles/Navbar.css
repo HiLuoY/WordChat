@@ -1,42 +1,66 @@
-/* Navbar.css */
 .navbar {
+  position: fixed; /* 固定定位 */
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000; /* 确保导航栏在最上层 */
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #1C3200;
   padding: 10px 20px;
-  color: white;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e1e1e1;
 }
 
-.logo {
-  font-size: 24px;
-  font-weight: bold;
-  color: #D2D369;
-}
-
-.nav-links {
-  display: flex;
-}
-
-.nav-link {
-  color: white;
-  text-decoration: none;
-  margin-left: 20px;
+.navbar-left, .navbar-right {
   display: flex;
   align-items: center;
+  gap: 15px;
 }
 
-.icon-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 40px; /* 圆的直径 */
-  height: 40px; /* 圆的直径 */
-  background-color: white; /* 圆的背景颜色 */
-  border-radius: 50%; /* 使容器成为圆形 */
+.nav-button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 8px;
+  transition: color 0.3s;
+}
+
+.icon-button {
+  position: relative;
+}
+
+.icon-button:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #333;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .nav-icon {
-  width: 32px; /* 设置图标的宽度 */
-  height: 32px; /* 设置图标的高度 */
+  font-size: 20px;
+  color: #555;
+}
+
+.nav-icon:hover {
+  color: #007bff;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.default-avatar {
+  font-size: 40px;
+  color: #ccc;
 }

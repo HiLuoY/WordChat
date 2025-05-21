@@ -1,9 +1,9 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
-import Learn from "./pages/Learn";
+//import Learn from "./pages/Learn";
 import Login from './pages/Login';
-// import Books from "./pages/Books";
+import ChatPage from "./pages/ChatPage";
 // import MyWords from "./pages/MyWords";
 // import Chat from "./pages/Chat";
 // import Profile from "./pages/Profile";
@@ -13,7 +13,7 @@ const App = () => {
     <Router>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/learn" element={<Learn />} />
+        <Route path="/chatpage" element={<ChatPage />} />
         <Route path="/login" element={<Login />} />
         {/* <Route path="/books" element={<Books />} />
         <Route path="/my-words" element={<MyWords />} />

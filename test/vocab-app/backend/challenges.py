@@ -47,12 +47,14 @@ def create_challenge():
         if num_words <= 0:
             logger.error("num_words 必须为正整数")
             return jsonify({'code': 400, 'message': 'num_words 必须为正整数'}), 400
-
+        #---------------------------当注册登录，创建/加入房间弄好后记得恢复----------------------------
         # ===== 3. 会话验证 =====
-        user_id = session.get('user_id')
-        if not user_id:
-            logger.error("用户未登录，session: %s", session)
-            return jsonify({'code': 401, 'message': '请先登录'}), 401
+        # user_id = session.get('user_id')
+        # if not user_id:
+        #     logger.error("用户未登录，session: %s", session)
+        #     return jsonify({'code': 401, 'message': '请先登录'}), 401
+        #记得删除
+        user_id = int(data['user_id'])
 
         # ===== 4. 权限验证 =====
         from models.room_model import Room
@@ -138,6 +140,7 @@ def send_word_and_answer(room_id, challenge_ids, index=0):
         print(f"DEBUG: 准备发送 reveal_word，房间ID={room_id}")  # 调试日志
         if index >= len(challenge_ids):
             logger.info(f"[定时器] 所有单词已展示完毕，房间ID: {room_id}")
+            # 发送挑战结束事件
             socketio.emit('challenge_end', room=str(room_id))
             # 清除房间状态
             del_room_state(room_id)

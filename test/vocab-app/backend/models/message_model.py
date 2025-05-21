@@ -28,12 +28,12 @@ class Message:
             raise  # 将异常抛给调用方
 
     @staticmethod
-    def get_messages_by_room(room_id):
-        """根据房间ID获取消息列表"""
+    def get_messages_by_room(room_id,limit=80):
+        """根据房间ID获取消息列表,按时间降序排列，常用于展示最新消息优先的场景。"""
         sql = """
         SELECT * FROM Messages
         WHERE room_id = %s
-        ORDER BY timestamp ASC
+        ORDER BY timestamp DESC
         """
         params = (room_id,)
         try:

@@ -1,0 +1,196 @@
+.chat-container {
+  padding-top: 60px; /* 导航栏高度 */
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 60px); /* 防止内容溢出 */
+}
+
+.chat-content {
+  flex: 1;
+  overflow-y: auto; /* 允许内容滚动 */
+  padding: 0px;
+  border-bottom: 1px solid #ccc;
+  position: relative;
+}
+
+/* 挑战显示区域 */
+.challenge-display {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(255, 255, 255, 0.95);
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  text-align: center;
+  z-index: 1000;
+  min-width: 300px;
+  max-width: 80%;
+}
+
+.challenge-meaning {
+  font-size: 18px;
+  margin-bottom: 15px;
+  color: #333;
+  line-height: 1.5;
+}
+
+.challenge-countdown {
+  font-size: 24px;
+  font-weight: bold;
+  color: #ff4d4f;
+  margin: 10px 0;
+}
+
+.challenge-answer {
+  font-size: 20px;
+  color: #52c41a;
+  margin-top: 10px;
+  font-weight: bold;
+}
+
+/* 答案反馈样式 */
+.correct-answer .message-content {
+  background-color: #f6ffed !important;
+  border: 1px solid #b7eb8f;
+  color: #52c41a;
+}
+
+.wrong-answer .message-content {
+  background-color: #fff2f0 !important;
+  border: 1px solid #ffccc7;
+  color: #ff4d4f;
+}
+
+.messages-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0px;
+  border-bottom: 1px solid #ccc;
+}
+
+.message {
+  margin: 3px;
+  padding: 3px;
+  border-radius: 8px;
+  max-width: 70%;
+  position: relative;
+}
+
+.my-message {
+  margin-left: auto;
+  background-color: #e3f2fd;
+}
+
+.system-message {
+  text-align: center;
+  background-color: #f5f5f5;
+  color: #666;
+  font-style: italic;
+  max-width: 100%;
+  margin: 3px auto;
+  padding: 3px;
+}
+
+.message-sender {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 0px;
+  gap: 10px;
+}
+
+.avatar-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 35px;
+}
+
+.message-avatar {
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2px;
+}
+
+.sender-name {
+  font-size: 8px;
+  color: #666;
+  text-align: center;
+  max-width: 35px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.my-message .message-sender {
+  flex-direction: row-reverse;
+}
+
+.message-content {
+  background-color: #fff;
+  padding: 5px;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  flex: 1;
+}
+
+.my-message .message-content {
+  background-color: #e3f2fd;
+}
+
+.message-input-container {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  border-top: 1px solid #ccc;
+}
+
+.challenge-button {
+  background-color: #ffcc00;
+  color: #000;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.challenge-button:hover {
+  background-color: #e6b800;
+}
+
+.message-input-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  margin-left: 10px;
+}
+
+.message-input-wrapper input {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  margin-right: 10px;
+}
+
+.send-button {
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.send-button:hover {
+  background-color: #0056b3;
+}

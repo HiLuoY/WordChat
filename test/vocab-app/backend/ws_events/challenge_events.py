@@ -90,7 +90,8 @@ def register_challenge_events(socketio):
             emit('answer_feedback', {
                 "user_id": user_id,
                 "mask": "***" if result['correct'] else answer,
-                "correct": result['correct']
+                "correct": result['correct'],
+
             }, room=str(room_id))
 
             # === 8. 更新分数 ===
