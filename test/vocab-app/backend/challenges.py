@@ -99,12 +99,17 @@ def create_challenge():
         }
         set_room_state(room_id, room_state)
         # ===== 8. WebSocket通知 =====
-        try:
-            # for i, challenge_id in enumerate(challenge_ids):
-            send_word_and_answer(room_id, challenge_ids, 0)
-        except Exception as e:
-            logger.error(f"WebSocket错误详情: {str(e)}", exc_info=True)
-
+        # try:
+        #     # for i, challenge_id in enumerate(challenge_ids):
+        #     send_word_and_answer(room_id, challenge_ids, 0)
+        # except Exception as e:
+        #     logger.error(f"WebSocket错误详情: {str(e)}", exc_info=True)
+        # ===== 7. 异步启动挑战流程 =====
+        socketio.start_background_task(
+            start_challenge_async,
+            room_id=room_id,
+            challenge_ids=challenge_ids
+        )
         return jsonify({
             'code': 201,
             'message': '挑战创建成功',
@@ -135,7 +140,14 @@ def create_challenge():
         logger.error("全局异常: %s", str(e), exc_info=True)
         return jsonify({'code': 500, 'message': '服务器内部错误'}), 500
 
-
+def start_challenge_async(room_id, challenge_ids):
+    """异步启动挑战流程"""
+    try:
+        logger.info(f"[异步挑战] 开始挑战流程，房间ID: {room_id}")
+        send_word_and_answer(room_id, challenge_ids, 0)
+    except Exception as e:
+        logger.error(f"[异步挑战] 发生错误: {str(e)}", exc_info=True)
+        
 def send_word_and_answer(room_id, challenge_ids, index=0):
         print(f"DEBUG: 准备发送 reveal_word，房间ID={room_id}")  # 调试日志
         if index >= len(challenge_ids):

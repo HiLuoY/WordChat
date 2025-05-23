@@ -40,6 +40,12 @@ const ChatPage = () => {
     ]);
   }, []);
 
+  // 在useEffect中添加自动滚动逻辑
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]); // 当消息更新时自动滚动到底部
+
+
   // 初始化 Socket.IO 连接
   useEffect(() => {
     const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
@@ -97,16 +103,13 @@ const ChatPage = () => {
     });
 
     socketInstance.on('answer_feedback', (data) => {
-      const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
-      if (data.user_id === userInfo.userId) {
-        setMessages(prev => [...prev, {
-          content: data.mask,
-          sender: userInfo.nickname,
-          avatar: userInfo.avatar || DEFAULT_AVATAR,
-          isMe: true,
-          correct: data.correct,
-        }]);
-      }
+      setMessages(prev => [...prev, {
+        content: data.mask,
+        sender: userInfo.nickname,
+        avatar: userInfo.avatar || DEFAULT_AVATAR,
+        isMe: data.user_id === userInfo.userId,
+        correct: data.correct,
+      }]);
     });
 
     socketInstance.on('system_message', (data) => {
@@ -159,6 +162,18 @@ const ChatPage = () => {
       }
       
       setNewMessage('');
+      // 关键：滚动到底部（使用 setTimeout 确保 DOM 更新完成）
+      setTimeout(() => {
+        scrollToBottom();
+      }, 0);
+    }
+  };
+
+  // 修改滚动函数
+  const scrollToBottom = () => {
+    const messagesContainer = document.querySelector('.chat-content');
+    if (messagesContainer) {
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
   };
 
