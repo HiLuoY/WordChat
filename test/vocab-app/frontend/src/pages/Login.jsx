@@ -1,27 +1,150 @@
 import { useState } from 'react'
 import axios from 'axios'
+import { useNavigate } from 'react-router-dom'
+import '../styles/AuthForm.css' // 新增CSS导入
 
-export default function Login() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+const api = axios.create({
+  baseURL: 'http://localhost:5000',
+  withCredentials: true
+})
 
-  const handleLogin = async () => {
+export default function AuthForm() {
+  const navigate = useNavigate()
+  const [isLogin, setIsLogin] = useState(true)
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    nickname: '',
+    confirmPassword: ''
+  })
+  const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    })
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError('')
+
     try {
-      const res = await axios.post('http://localhost/api/user/login', {
-        email, password
-      }, { withCredentials: true })
-      alert(res.data.message)
-    } catch (e) {
-      alert(e.response?.data?.message || '登录失败')
+      if (!isLogin) {
+        if (formData.password !== formData.confirmPassword) {
+          throw new Error('两次密码输入不一致')
+        }
+        if (!formData.nickname) {
+          throw new Error('昵称不能为空')
+        }
+      }
+
+      const payload = isLogin 
+        ? { email: formData.email, password: formData.password }
+        : { 
+            email: formData.email,
+            password: formData.password,
+            nickname: formData.nickname
+          }
+
+      const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register'
+      const { data } = await api.post(endpoint, payload)
+
+      if (data.code === 200 || data.code === 201) {
+        navigate('/')
+      } else {
+        throw new Error(data.message)
+      }
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || err.message
+      setError(errorMessage.includes("已存在") ? "邮箱已被注册" : errorMessage)
+    } finally {
+      setIsLoading(false)
     }
   }
 
   return (
-    <div>
-      <h2>登录</h2>
-      <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" />
-      <input value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="密码" />
-      <button onClick={handleLogin}>登录</button>
+    <div className="auth-container">
+      <div className="tabs">
+        <button 
+          className={isLogin ? 'active' : ''}
+          onClick={() => setIsLogin(true)}
+          type="button"
+        >
+          登录
+        </button>
+        <button
+          className={!isLogin ? 'active' : ''}
+          onClick={() => setIsLogin(false)}
+          type="button"
+        >
+          注册
+        </button>
+      </div>
+
+      <form onSubmit={handleSubmit}>
+        {!isLogin && (
+          <div className="form-group">
+            <label>昵称</label>
+            <input
+              type="text"
+              name="nickname"
+              value={formData.nickname}
+              onChange={handleChange}
+              required
+              placeholder="请输入昵称"
+            />
+          </div>
+        )}
+
+        <div className="form-group">
+          <label>邮箱</label>
+          <input
+            type="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            required
+            placeholder="请输入邮箱"
+          />
+        </div>
+
+        <div className="form-group">
+          <label>密码</label>
+          <input
+            type="password"
+            name="password"
+            value={formData.password}
+            onChange={handleChange}
+            required
+            minLength="6"
+            placeholder="请输入密码"
+          />
+        </div>
+
+        {!isLogin && (
+          <div className="form-group">
+            <label>确认密码</label>
+            <input
+              type="password"
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              required
+              placeholder="请再次输入密码"
+            />
+          </div>
+        )}
+
+        {error && <div className="error">{error}</div>}
+
+        <button type="submit" disabled={isLoading}>
+          {isLoading ? '处理中...' : (isLogin ? '登录' : '注册')}
+        </button>
+      </form>
     </div>
   )
 }

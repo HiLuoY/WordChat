@@ -10,7 +10,7 @@ const DEFAULT_AVATAR = '/default-avatar.jpg';
 
 // --------测试补充的一些东西，记得删哈，测试用户数据
 const TEST_USER = {
-  userId: '1',
+  userId: '5',
   nickname: 'TestUser',
   avatar: '/default-avatar.jpg'
 };
