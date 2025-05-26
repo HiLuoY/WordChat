@@ -20,6 +20,36 @@ def register_room_events(socketio):
     def handle_disconnect():
         logger.info(f"客户端断开连接 | SID={request.sid}")
 
+    @socketio.on('get_all_rooms')
+    def handle_get_all_rooms():
+        """获取所有房间信息并进行展示"""
+        try:
+            rooms = Room.get_all_rooms()
+            
+            # 为每个房间添加成员数量和基本信息
+            room_list = []
+            for room in rooms:
+                room_info = {
+                    'id': room['id'],
+                    'name': room['room_name'],
+                    'owner_id': room['owner_id'],
+                    'created_at': room['created_at'],
+                    'member_count': RoomMember.get_member_count(room['id']),
+                    'has_password': bool(room.get('password'))  # 只返回是否有密码，不返回密码本身
+                }
+                
+                # 获取房主信息
+                owner = User.get_user_by_id(room['owner_id'])
+                if owner:
+                    room_info['owner_name'] = owner.get('nickname', '未知用户')
+                
+                room_list.append(room_info)
+            
+            emit('all_rooms_data', {'rooms': room_list})
+        except Exception as e:
+            logger.error(f"获取所有房间信息失败: {str(e)}", exc_info=True)
+            emit('system_message', {'message': '获取房间列表失败'})
+
     @socketio.on('join_room')
     def handle_join_room(data):
         if 'user_id' not in session:
@@ -66,14 +96,17 @@ def register_room_events(socketio):
         if leaderboard is not None:
             socketio.emit('leaderboard_update', leaderboard, room=str(room_id))
         else:
-            print(f"获取排行榜失败: room_id={room_id}")
+            logger.error(f"获取排行榜失败: room_id={room_id}")
 
         # 获取用户排名
         rank = Leaderboard.get_user_rank(room_id, user_id)
         if rank is not None:
             socketio.emit('user_ranking', {'rank': rank}, room=request.sid)
         else:
-            print(f"获取用户排名失败: room_id={room_id}, user_id={user_id}")
+            logger.error(f"获取用户排名失败: room_id={room_id}, user_id={user_id}")
+
+        # 通知所有客户端更新房间列表
+        handle_get_all_rooms()
 
     @socketio.on('leave_room')
     def handle_leave_room(data):
@@ -93,8 +126,86 @@ def register_room_events(socketio):
 
         leave_room(str(room_id))
 
+        # 从房间成员中移除
+        RoomMember.remove_member(room_id, session['user_id'])
+
         emit('system_message', {
             'message': f"{user['nickname']} 离开了房间"
         }, room=str(room_id))
 
         emit('room_left', {'room_id': room_id})
+
+        # 如果是房主离开，解散房间
+        room = Room.get_room_by_id(room_id)
+        if room and room['owner_id'] == session['user_id']:
+            Room.delete_room(room_id)
+            emit('room_dismissed', {'room_id': room_id}, room=str(room_id))
+            logger.info(f"房间 {room_id} 已被房主解散")
+
+        # 通知所有客户端更新房间列表
+        handle_get_all_rooms()
+
+    @socketio.on('kick_member')
+    def handle_kick_member(data):
+        """房主踢人功能"""
+        if 'user_id' not in session:
+            emit('system_message', {'message': '请先登录'}, room=request.sid)
+            return
+
+        room_id = data.get('room_id')
+        target_user_id = data.get('target_user_id')
+        
+        if not room_id or not target_user_id:
+            emit('system_message', {'message': '缺少必要参数'}, room=request.sid)
+            return
+
+        # 获取房间信息
+        room = Room.get_room_by_id(room_id)
+        if not room:
+            emit('system_message', {'message': '房间不存在'}, room=request.sid)
+            return
+
+        # 检查当前用户是否是房主
+        if room['owner_id'] != session['user_id']:
+            emit('system_message', {'message': '只有房主可以踢人'}, room=request.sid)
+            return
+
+        # 检查不能踢自己
+        if target_user_id == session['user_id']:
+            emit('system_message', {'message': '不能踢自己'}, room=request.sid)
+            return
+
+        # 检查目标用户是否在房间中
+        if not RoomMember.is_member(room_id, target_user_id):
+            emit('system_message', {'message': '目标用户不在房间中'}, room=request.sid)
+            return
+
+        # 获取目标用户信息
+        target_user = User.get_user_by_id(target_user_id)
+        if not target_user:
+            emit('system_message', {'message': '目标用户不存在'}, room=request.sid)
+            return
+
+        # 执行踢人操作
+        RoomMember.remove_member(room_id, target_user_id)
+        
+        # 通知被踢用户
+        emit('kicked_from_room', {
+            'room_id': room_id,
+            'reason': '你已被房主移出房间'
+        }, room=target_user_id)  # 假设用户的socket ID与user_id相关联
+
+        # 通知房间其他成员
+        emit('system_message', {
+            'message': f"{target_user['nickname']} 已被房主移出房间"
+        }, room=str(room_id))
+
+        logger.info(f"用户 {target_user_id} 被房主 {session['user_id']} 从房间 {room_id} 踢出")
+
+        # 更新排行榜（如果需要）
+        leaderboard = Leaderboard.get_room_leaderboard(room_id, limit=10)
+        if leaderboard is not None:
+            socketio.emit('leaderboard_update', leaderboard, room=str(room_id))
+
+        # 通知所有客户端更新房间列表
+        handle_get_all_rooms()
