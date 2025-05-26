@@ -1,26 +1,52 @@
+/* 主容器设置 */
 .chat-container {
-  padding-top: 60px; /* 导航栏高度 */
-  flex: 1;
+  padding-top: 60px;  /* 导航栏高度 */
+  height: calc(100vh - 60px);
+  width: 100%;
+  overflow: hidden;  /* 禁止全局滚动 */
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 60px); /* 防止内容溢出 */
-  overflow: hidden; /* 防止整体滚动 */
 }
 
+/* 主内容区 */
+.main-content-container {
+  display: flex;
+  flex: 1;  /* 关键：填充剩余空间 */
+  min-height: 0;  /* 关键：允许收缩 */
+  width: 100%;
+  overflow: hidden;
+}
+
+
+/* 聊天区域 */
+.chat-area {
+  width: 83.333%;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;  /* 关键：允许收缩 */
+  overflow: hidden;  /* 禁止滚动 */
+}
+
+/* 唯一可滚动区域 */
 .chat-content {
   flex: 1;
   padding: 10px;
-  overflow-y: auto;
-  min-height: 0;
+  overflow-y: auto;  /* 允许垂直滚动 */
+  min-height: 0;  /* 关键：允许flex项目收缩 */
   display: flex;
   flex-direction: column;
-  /* 关键：确保内容从底部开始 */
   justify-content: flex-end;
+  
+  /* 滚动条美化 */
+  scrollbar-width: thin;
+  scrollbar-color: #ccc transparent;
 }
+
 
 /* 挑战显示区域 */
 .challenge-display {
-  position: fixed;
+  position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -154,6 +180,7 @@
   background: white;
   position: sticky;
   bottom: 0;
+  flex-shrink: 0;  /* 禁止收缩 */
   z-index: 1;
 }
 

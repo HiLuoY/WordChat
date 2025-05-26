@@ -51,7 +51,7 @@ const Home = () => {
     }
   };
 
-  // 房间操作
+  // 房间操作----------------得改，没有/room页面，创建房间应该是实时事件，别用api，这里api路径也不对
   const handleCreateRoom = async () => {
     try {
       const { data } = await api.post('/api/rooms/create');
@@ -63,14 +63,16 @@ const Home = () => {
     }
   };
 
-  // 加入房间
+  // 加入房间----------------改，不是根据输房间id进房间（用户不知道 自己房间id是什么）
+  // 而是展示现有房间（后端得添加逻辑，得实时，不然不对，获取现有房间信息），用户点击进入
+  // 都没有将用户加入房间的后端处理实时事件，就导航到聊天页面，逻辑不对
   const handleJoinRoom = (e) => {
     e.preventDefault();
     if (!roomId.trim()) {
       setError('请输入有效的房间ID');
       return;
     }
-    navigate(`/chatpage`);
+    navigate(`/chatpage`);//聊天界面房主：/chat/owner;普通用户：/chat/guest
   };
 
   if (loading) return (
@@ -87,7 +89,8 @@ const Home = () => {
         <div className="nav-brand">单词对战平台</div>
         <div className="nav-links">
           <Link to="/home" className="nav-link active">首页</Link>
-          <Link to="/chat" className="nav-link">聊天室</Link>
+          <Link to="/chat" className="nav-link">聊天室</Link> 
+          {/* 我觉得不需要这个按钮了，在首页加入房间就会进聊天室，再在导航栏弄一个有点奇怪*/}
           <div className="user-menu-container">
             <img 
               src={userData?.avatar || '/default-avatar.jpg'}
@@ -150,7 +153,7 @@ const Home = () => {
           </form>
         </div>
 
-        {/* 快速指引 */}
+        {/* 快速指引 ，改输入已有房间id*/}
         <div className="quick-guide">
           <h3>如何开始？</h3>
           <div className="guide-steps">

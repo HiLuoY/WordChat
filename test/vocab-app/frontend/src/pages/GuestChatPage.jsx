@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FaComments } from 'react-icons/fa';
 import { io } from 'socket.io-client';
 import Navbar from '../components/Navbar';
+import RankingSidebar from '../components/RankingPanel'; // 导入新组件
 import '../styles/ChatPage.css';
 
 // 默认头像URL
@@ -16,6 +17,29 @@ const GuestChatPage = () => {
   const [roomId, setRoomId] = useState('1'); // 测试房间ID--记得删改
   const [challenge, setChallenge] = useState(null);
   const [countdown, setCountdown] = useState(0);
+  
+  // 添加排行榜状态----------------------记得删
+    const [rankings, setRankings] = useState([
+      { id: 1, name: '用户A', score: 100 },
+      { id: 2, name: '用户B', score: 80 },
+      { id: 3, name: '用户C', score: 60 },
+    ]);
+  
+    // 添加获取排行榜数据的effect
+    useEffect(() => {
+      // 这里可以添加获取真实排行榜数据的逻辑
+      const fetchRankings = async () => {
+        try {
+          // const response = await fetch('http://localhost:5000/api/rankings');
+          // const data = await response.json();
+          // setRankings(data);
+        } catch (error) {
+          console.error('获取排行榜数据失败:', error);
+        }
+      };
+      
+      fetchRankings();
+    }, []);
 
   // 初始化测试数据-----------记得删除..........
   useEffect(() => {
@@ -185,66 +209,73 @@ const GuestChatPage = () => {
     <div className="chat-container">
       <Navbar
         onLeaveRoom={handleLeaveRoom}
-        onShowRanking={() => navigate('/ranking')}
         onEditProfile={() => navigate('/profile/edit')}
         showKickButton={false}   // 隐藏踢人按钮
       />
-
-      {/* 聊天内容区域 */}
-      <div className="chat-content">
-        {challenge && (
-          <div className="challenge-display">
-            <div className="challenge-meaning">{challenge.meaning}</div>
-            {countdown > 0 && (
-              <div className="challenge-countdown">{countdown}秒</div>
-            )}
-            {challenge.word && (
-              <div className="challenge-answer">{challenge.word}</div>
-            )}
-          </div>
-        )}
-        {messages.map((msg, index) => (
-          <div key={index} className={`message ${msg.type === 'system' ? 'system-message' : msg.isMe ? 'my-message' : ''} ${msg.correct !== undefined ? (msg.correct ? 'correct-answer' : 'wrong-answer') : ''}`}>
-            {msg.type !== 'system' && (
-              <div className="message-sender">
-                <div className="avatar-container">
-                  <img 
-                    src={msg.avatar || DEFAULT_AVATAR}
-                    alt={`${msg.sender}的头像`}
-                    className="message-avatar"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = DEFAULT_AVATAR;
-                    }}
-                  />
-                  <span className="sender-name">{msg.sender}</span>
-                </div>
-                <div className="message-content">{msg.content}</div>
+      {/* 主内容区域 - 分为左右两部分 */}
+      <div className="main-content-container">
+        {/* 使用独立的排行榜组件 */}
+        <RankingSidebar rankings={rankings} />
+      
+        {/* 右侧聊天区域 (5/6宽度) */}
+        <div className="chat-area">
+          {/* 聊天内容区域 */}
+          <div className="chat-content">
+            {challenge && (
+              <div className="challenge-display">
+                <div className="challenge-meaning">{challenge.meaning}</div>
+                {countdown > 0 && (
+                  <div className="challenge-countdown">{countdown}秒</div>
+                )}
+                {challenge.word && (
+                  <div className="challenge-answer">{challenge.word}</div>
+                )}
               </div>
             )}
-            {msg.type === 'system' && (
-              <div className="message-content">{msg.content}</div>
-            )}
+            {messages.map((msg, index) => (
+              <div key={index} className={`message ${msg.type === 'system' ? 'system-message' : msg.isMe ? 'my-message' : ''} ${msg.correct !== undefined ? (msg.correct ? 'correct-answer' : 'wrong-answer') : ''}`}>
+                {msg.type !== 'system' && (
+                  <div className="message-sender">
+                    <div className="avatar-container">
+                      <img 
+                        src={msg.avatar || DEFAULT_AVATAR}
+                        alt={`${msg.sender}的头像`}
+                        className="message-avatar"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = DEFAULT_AVATAR;
+                        }}
+                      />
+                      <span className="sender-name">{msg.sender}</span>
+                    </div>
+                    <div className="message-content">{msg.content}</div>
+                  </div>
+                )}
+                {msg.type === 'system' && (
+                  <div className="message-content">{msg.content}</div>
+                )}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      {/* 消息输入框（没有挑战按钮） */}
-      <div className="message-input-container">
-        <div className="message-input-wrapper">
-          <input
-            type="text"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder={challenge ? "请输入答案..." : "输入消息..."}
-            onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-          />
-          <button onClick={sendMessage} className="send-button">
-            <FaComments />
-          </button>
+          {/* 消息输入框（没有挑战按钮） */}
+          <div className="message-input-container">
+            <div className="message-input-wrapper">
+              <input
+                type="text"
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder={challenge ? "请输入答案..." : "输入消息..."}
+                onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+              />
+              <button onClick={sendMessage} className="send-button">
+                <FaComments />
+              </button>
+            </div>
+          </div>
         </div>
+       </div> 
       </div>
-    </div>
   );
 };
 

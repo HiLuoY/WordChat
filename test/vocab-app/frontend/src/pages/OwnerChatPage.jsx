@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FaComments, FaBolt } from 'react-icons/fa';
 import { io } from 'socket.io-client';
 import Navbar from '../components/Navbar';
+import RankingSidebar from '../components/RankingPanel'; // 导入新组件
 import '../styles/ChatPage.css';
 
 // 默认头像URL
@@ -10,7 +11,7 @@ const DEFAULT_AVATAR = '/default-avatar.jpg';
 
 // --------测试补充的一些东西，记得删哈，测试用户数据
 const TEST_USER = {
-  userId: '5',
+  userId: '1',
   nickname: 'TestUser',
   avatar: '/default-avatar.jpg'
 };
@@ -23,6 +24,29 @@ const ChatPage = () => {
   const [roomId, setRoomId] = useState('1'); // 测试房间ID
   const [challenge, setChallenge] = useState(null);
   const [countdown, setCountdown] = useState(0);
+  
+  // 添加排行榜状态----------------------记得删
+  const [rankings, setRankings] = useState([
+    { id: 1, name: '用户A', score: 100 },
+    { id: 2, name: '用户B', score: 80 },
+    { id: 3, name: '用户C', score: 60 },
+  ]);
+
+  //------------------to do 添加获取排行榜数据的effect
+  useEffect(() => {
+    // 这里可以添加获取真实排行榜数据的逻辑
+    const fetchRankings = async () => {
+      try {
+        // const response = await fetch('http://localhost:5000/api/rankings');
+        // const data = await response.json();
+        // setRankings(data);
+      } catch (error) {
+        console.error('获取排行榜数据失败:', error);
+      }
+    };
+    
+    fetchRankings();
+  }, []);
 
   // 初始化测试数据
   useEffect(() => {
@@ -177,7 +201,8 @@ const ChatPage = () => {
     }
   };
 
-  // 处理离开房间
+  //to do: 添加离开房间功能
+  //----------------------------------------------------------- 处理离开房间
   const handleLeaveRoom = () => {
     const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
     
@@ -194,7 +219,7 @@ const ChatPage = () => {
     // 导航回大厅
     navigate('/lobby');
   };
-
+  //-------------------------------------------------------------
   // 发起挑战
   const handleChallenge = () => {
     const wordCount = prompt('请输入本轮挑战的词数：');
@@ -219,7 +244,7 @@ const ChatPage = () => {
     <div className="chat-container">
       <Navbar
         onLeaveRoom={handleLeaveRoom}
-        onShowRanking={() => navigate('/ranking')}
+        //--------可根据需要修改，根据后端实现的踢人逻辑进行修改
         onKickUser={(userId) => {
           if (socket && socket.connected) {
             socket.emit('kick_user', {
@@ -232,62 +257,71 @@ const ChatPage = () => {
         showRoomControls={true}
         showKickButton={true}
       />
+      {/* 主内容区域 - 分为左右两部分 */}
+      <div className="main-content-container">
+        {/* 使用独立的排行榜组件 */}
+        <RankingSidebar rankings={rankings} />
 
-      {/* 聊天内容区域（可滚动） */}
-      <div className="chat-content">
-        {challenge && (
-          <div className="challenge-display">
-            <div className="challenge-meaning">{challenge.meaning}</div>
-            {countdown > 0 && (
-              <div className="challenge-countdown">{countdown}秒</div>
-            )}
-            {challenge.word && (
-              <div className="challenge-answer">{challenge.word}</div>
-            )}
-          </div>
-        )}
-        {messages.map((msg, index) => (
-          <div key={index} className={`message ${msg.type === 'system' ? 'system-message' : msg.isMe ? 'my-message' : ''} ${msg.correct !== undefined ? (msg.correct ? 'correct-answer' : 'wrong-answer') : ''}`}>
-            {msg.type !== 'system' && (
-              <div className="message-sender">
-                <div className="avatar-container">
-                  <img 
-                    src={msg.avatar || DEFAULT_AVATAR}
-                    alt={`${msg.sender}的头像`}
-                    className="message-avatar"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = DEFAULT_AVATAR;
-                    }}
-                  />
-                  <span className="sender-name">{msg.sender}</span>
-                </div>
-                <div className="message-content">{msg.content}</div>
+        {/* 右侧聊天区域 (5/6宽度) */}
+        <div className="chat-area">
+      
+          {/* 聊天内容区域（可滚动） */}
+          <div className="chat-content">
+            {challenge && (
+              <div className="challenge-display">
+                <div className="challenge-meaning">{challenge.meaning}</div>
+                {countdown > 0 && (
+                  <div className="challenge-countdown">{countdown}秒</div>
+                )}
+                {challenge.word && (
+                  <div className="challenge-answer">{challenge.word}</div>
+                )}
               </div>
             )}
-            {msg.type === 'system' && (
-              <div className="message-content">{msg.content}</div>
-            )}
+            {messages.map((msg, index) => (
+              <div key={index} className={`message ${msg.type === 'system' ? 'system-message' : msg.isMe ? 'my-message' : ''} ${msg.correct !== undefined ? (msg.correct ? 'correct-answer' : 'wrong-answer') : ''}`}>
+                {msg.type !== 'system' && (
+                  <div className="message-sender">
+                    <div className="avatar-container">
+                      <img 
+                        src={msg.avatar || DEFAULT_AVATAR}
+                        alt={`${msg.sender}的头像`}
+                        className="message-avatar"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = DEFAULT_AVATAR;
+                        }}
+                      />
+                      <span className="sender-name">{msg.sender}</span>
+                    </div>
+                    <div className="message-content">{msg.content}</div>
+                  </div>
+                )}
+                {msg.type === 'system' && (
+                  <div className="message-content">{msg.content}</div>
+                )}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      {/* 消息输入框和挑战按钮（固定在底部） */}
-      <div className="message-input-container">
-        <button onClick={handleChallenge} className="challenge-button">
-          <FaBolt /> 发起挑战
-        </button>
-        <div className="message-input-wrapper">
-          <input
-            type="text"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder={challenge ? "请输入答案..." : "输入消息..."}
-            onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-          />
-          <button onClick={sendMessage} className="send-button">
-            <FaComments />
-          </button>
+          {/* 消息输入框和挑战按钮（固定在底部） */}
+          <div className="message-input-container">
+            <button onClick={handleChallenge} className="challenge-button">
+              <FaBolt /> 发起挑战
+            </button>
+            <div className="message-input-wrapper">
+              <input
+                type="text"
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder={challenge ? "请输入答案..." : "输入消息..."}
+                onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+              />
+              <button onClick={sendMessage} className="send-button">
+                <FaComments />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

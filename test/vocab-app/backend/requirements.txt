@@ -6,3 +6,4 @@ python-socketio
 eventlet
 pytest
 flask-cors
+prop-types

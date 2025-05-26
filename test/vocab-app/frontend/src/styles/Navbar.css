@@ -18,6 +18,11 @@
   gap: 15px;
 }
 
+
+.nav-icon.active {
+  color: #ffcc00; /* 高亮颜色 */
+}
+
 .nav-button {
   border: none;
   background: none;

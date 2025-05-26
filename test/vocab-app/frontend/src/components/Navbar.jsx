@@ -29,7 +29,7 @@ const Navbar = ({
               <FaDoorOpen className="nav-icon" />
             </button>
             <button onClick={onShowRanking} className="nav-button icon-button" title="排行榜">
-              <FaTrophy className="nav-icon" />
+              <FaTrophy className="nav-icon active" />
             </button>
             {showKickButton && (
               <button 

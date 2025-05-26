@@ -1,0 +1,68 @@
+/* 排行榜组件样式 */
+.ranking-sidebar {
+  width: 16.666%; /* 1/6宽度 */
+  background-color: #f8f9fa;
+  border-right: 1px solid #dee2e6;
+  padding: 15px;
+  overflow-y: auto;  /* 如果需要排行榜独立滚动 */
+  height: 100%;  /* 填充高度 */
+}
+
+.ranking-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.ranking-header h3 {
+  margin: 0 0 0 10px;
+  font-size: 18px;
+}
+
+.trophy-icon {
+  color: #ffc107;
+  font-size: 20px;
+}
+
+.ranking-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ranking-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: #fff;
+  border-radius: 5px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.ranking-item .rank {
+  font-weight: bold;
+  color: #333;
+  min-width: 20px;
+}
+
+.ranking-item .user-name {
+  flex: 1;
+  margin: 0 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ranking-item .score {
+  color: #ff6b6b;
+  font-weight: bold;
+}
+
+.no-rankings {
+  text-align: center;
+  color: #666;
+  padding: 10px;
+}
