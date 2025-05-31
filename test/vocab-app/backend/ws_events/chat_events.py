@@ -29,12 +29,6 @@ def register_chat_events(socketio):
             room_id = data.get(KEY_ROOM_ID)
             content = data.get(KEY_CONTENT)
             user_id = data.get(KEY_USER_ID)
-            # --------------------------------加入房间命令，记得删除
-            join_room(str(room_id))
-            # # --------------------------------检查用户是否登录：记得恢复
-            # if KEY_USER_ID not in session:
-            #     emit_error('请先登录')
-            #     return
 
             # 校验必要字段是否存在
             if not room_id or not content or not user_id:
@@ -59,7 +53,7 @@ def register_chat_events(socketio):
 
             # 构造并发送新消息事件
             emit('new_message', {
-                'user_id': str(user_id),
+                'user_id': user_id,
                 'nickname': html.escape(user['nickname']),  # 转义防止 XSS 攻击
                 'content': content,
                 'avatar': user['avatar'] or '/default-avatar.jpg',  # 如果没有头像则使用默认头像

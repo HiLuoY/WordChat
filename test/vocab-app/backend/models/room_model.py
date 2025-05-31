@@ -229,3 +229,16 @@ class Room:
             # 捕获异常并记录错误信息
             logger.error(f"Error occurred while checking ownership for room={room_id}, user={user_id}: {e}")
             return False
+    @staticmethod
+    def get_all_rooms() -> List[Dict]:
+        """获取所有房间基础信息（包含密码字段）"""
+        sql = """
+        SELECT id, room_name, password
+        FROM Rooms
+        ORDER BY created_at DESC
+        """
+        try:
+            return query(sql) or []
+        except Exception as e:
+            logger.error(f"获取所有房间失败: {str(e)}")
+            raise

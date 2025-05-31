@@ -43,7 +43,8 @@ def register_challenge_events(socketio):
             room_id = data.get('room_id')
             user_id = data.get('user_id')
             answer = data.get('answer')
-
+            nickname = data.get('nickname')
+            avatar = data.get('avatar')
             if not all([room_id, user_id, answer]):
                 logger.error("提交答案失败: 缺少必要参数")
                 emit('system_message', {'message': '提交答案失败: 缺少必要参数'})
@@ -91,7 +92,8 @@ def register_challenge_events(socketio):
                 "user_id": user_id,
                 "mask": "***" if result['correct'] else answer,
                 "correct": result['correct'],
-
+                "nickname": nickname,
+                "avatar": avatar
             }, room=str(room_id))
 
             # === 8. 更新分数 ===

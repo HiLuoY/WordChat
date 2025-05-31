@@ -1,3 +1,4 @@
+import datetime
 from flask import request, session
 from flask_socketio import emit, join_room, leave_room
 import logging
@@ -22,36 +23,38 @@ def register_room_events(socketio):
 
     @socketio.on('get_all_rooms')
     def handle_get_all_rooms():
-        """获取所有房间信息并进行展示"""
+        """获取所有房间信息并进行展示（优化实时版本）"""
         try:
+            # 获取所有基础房间信息（一次性查询提高效率）
             rooms = Room.get_all_rooms()
-            
-            # 为每个房间添加成员数量和基本信息
+            if not rooms:
+                emit('all_rooms_data', {'rooms': []})
+                return
+            # 构建响应数据
             room_list = []
             for room in rooms:
+                has_password = room['password'] is not None  # 直接检查是否为None
                 room_info = {
                     'id': room['id'],
                     'name': room['room_name'],
-                    'owner_id': room['owner_id'],
-                    'created_at': room['created_at'],
-                    'member_count': RoomMember.get_member_count(room['id']),
-                    'has_password': bool(room.get('password'))  # 只返回是否有密码，不返回密码本身
+                    'has_password': has_password
                 }
-                
-                # 获取房主信息
-                owner = User.get_user_by_id(room['owner_id'])
-                if owner:
-                    room_info['owner_name'] = owner.get('nickname', '未知用户')
-                
                 room_list.append(room_info)
+
+            emit('all_rooms_data', {
+                'rooms': room_list,
+                #'timestamp': datetime.utcnow().isoformat()  # 添加时间戳用于客户端同步
+            })
             
-            emit('all_rooms_data', {'rooms': room_list})
         except Exception as e:
             logger.error(f"获取所有房间信息失败: {str(e)}", exc_info=True)
-            emit('system_message', {'message': '获取房间列表失败'})
-
+            emit('system_message', {
+                'code': 'ROOM_FETCH_ERROR',
+                'message': '获取房间列表失败，请稍后重试'
+            })
     @socketio.on('join_room')
     def handle_join_room(data):
+        logger.info(f"尝试加入房间 | 用户session: {session} | 请求数据: {data}")
         if 'user_id' not in session:
             emit('system_message', {'message': '请先登录'})
             return
@@ -209,3 +212,29 @@ def register_room_events(socketio):
 
         # 通知所有客户端更新房间列表
         handle_get_all_rooms()
+
+        # WebSocket 事件处理器
+    @socketio.on('create_room')
+    def handle_create_room(data):
+        try:
+            # 1. 调用ORM层创建房间（包含业务逻辑验证）
+            room_id = Room.create_room(
+                room_name=data['room_name'],
+                owner_id=data['user_id'],
+                password=data.get('password')
+            )
+            
+            # 2. 广播新房间给所有客户端
+            new_room = {
+                'id': room_id,
+                'name': data['room_name'],
+                'owner_id': data['user_id'],
+                'has_password': bool(data.get('password'))
+            }
+            emit('room_created', new_room, broadcast=True)  # 广播给所有人
+            
+        except ValueError as e:
+            emit('error', {'message': str(e)})  # 只返回给当前用户
+        except Exception as e:
+            logger.error(f"Room creation failed: {str(e)}")
+            emit('error', {'message': '服务器错误'})

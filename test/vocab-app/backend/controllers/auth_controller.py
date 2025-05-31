@@ -39,7 +39,6 @@ def register():
             # 自动登录
             session['user_id'] = user_id
             session['user_email'] = data['email']
-            
             return jsonify({
                 'code': 201,
                 'message': 'Registration successful',
@@ -74,7 +73,7 @@ def login():
         # 更新会话
         session['user_id'] = user['id']
         session['user_email'] = user['email']
-        
+        logger.info(f"登录 | 用户session: {session} ")
         return jsonify({
             'code': 200,
             'message': 'Login successful',
@@ -94,6 +93,7 @@ def logout():
     """用户注销"""
     try:
         # 记录注销操作
+        logger.info(f"注销 | 用户session: {session} ")
         user_id = session.get('user_id')
         if user_id:
             logger.info(f"User logging out: id={user_id}")

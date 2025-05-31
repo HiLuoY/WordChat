@@ -13,9 +13,9 @@ const App = () => {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<Login />} />
         <Route path="/chat/owner" element={<ChatPage />} />
-        <Route path="/login" element={<Login />} />
+        <Route path="/home" element={<Home />} />
         <Route path="/chat/guest" element={<GuestChatPage />} />
         {/* <Route path="/books" element={<Books />} />
         <Route path="/my-words" element={<MyWords />} />

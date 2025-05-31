@@ -1,12 +1,7 @@
 import { useState } from 'react'
-import axios from 'axios'
 import { useNavigate } from 'react-router-dom'
 import '../styles/AuthForm.css' // 新增CSS导入
-
-const api = axios.create({
-  baseURL: 'http://localhost:5000',
-  withCredentials: true
-})
+import api  from './api'
 
 export default function AuthForm() {
   const navigate = useNavigate()
@@ -54,7 +49,9 @@ export default function AuthForm() {
       const { data } = await api.post(endpoint, payload)
 
       if (data.code === 200 || data.code === 201) {
-        navigate('/')
+        // 保存用户数据到localStorage
+        localStorage.setItem('userInfo', JSON.stringify(data.data));
+        navigate('/home')
       } else {
         throw new Error(data.message)
       }

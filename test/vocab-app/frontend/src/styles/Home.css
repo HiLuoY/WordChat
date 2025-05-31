@@ -1,64 +1,50 @@
-/* 全局布局 */
+/* Home.css */
+/* 整体页面容器 - 禁止滚动 */
 .page-container {
-  min-height: 100vh;
-  background: #f5f7fb;
-}
-
-.loading-container {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
   height: 100vh;
+  width: 100vw;
+  overflow: hidden; /* 禁止页面滚动 */
+  background-color: #f5f5f5;
+  font-family: 'Arial', sans-serif;
 }
 
-.spinner {
-  border: 4px solid rgba(0, 0, 0, 0.1);
-  border-left-color: #007bff;
-  height: 40px;
-  width: 40px;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* 导航栏 */
+/* 导航栏样式 */
 .app-navbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 2rem;
-  background: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 0 20px;
+  height: 60px;
+  background-color: #e1e1e1;
+  color: white;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
 .nav-brand {
   font-size: 1.5rem;
   font-weight: bold;
-  color: #2c3e50;
 }
 
 .nav-links {
   display: flex;
   align-items: center;
-  gap: 2rem;
+  gap: 20px;
 }
 
 .nav-link {
-  color: #666;
+  color: white;
   text-decoration: none;
-  transition: color 0.3s;
+  padding: 5px 10px;
+  border-radius: 4px;
 }
 
 .nav-link.active {
-  color: #007bff;
-  font-weight: 500;
+  background-color: rgba(255,255,255,0.2);
 }
 
-/* 用户菜单 */
+/* 用户头像和下拉菜单 */
 .user-menu-container {
   position: relative;
 }
@@ -68,180 +54,332 @@
   height: 40px;
   border-radius: 50%;
   cursor: pointer;
-  border: 2px solid transparent;
-  transition: all 0.3s;
-}
-
-.nav-avatar:hover {
-  border-color: #007bff;
+  border: 2px solid white;
 }
 
 .dropdown-menu {
   position: absolute;
   right: 0;
   top: 50px;
-  background: white;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border-radius: 8px;
-  min-width: 160px;
-  overflow: hidden;
-  z-index: 1000;
+  background-color: white;
+  border-radius: 4px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  z-index: 100;
+  min-width: 120px;
 }
 
 .menu-item {
-  padding: 12px 16px;
+  padding: 10px 15px;
   cursor: pointer;
-  transition: background 0.2s;
+  color: #333;
 }
 
 .menu-item:hover {
-  background: #f8f9fa;
-  color: #007bff;
+  background-color: #f0f0f0;
 }
 
 /* 主内容区 */
 .home-container {
-  max-width: 1200px;
-  margin: 2rem auto;
-  padding: 0 1rem;
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  padding: 20px;
 }
 
 .error-banner {
-  background: #ffe3e3;
-  color: #dc3545;
-  padding: 1rem;
-  border-radius: 6px;
-  margin: 1rem 0;
+  position: fixed;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #ff6b6b;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 4px;
+  z-index: 100;
 }
 
-/* 房间操作区 */
+/* 房间操作区域 - 左侧30% */
 .room-actions {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: 2rem;
-  align-items: center;
-  background: white;
-  padding: 3rem;
-  border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  display: flex;
+  width: 100%;
+  height: 100%;
+  gap: 20px;
 }
 
 .action-card {
-  text-align: center;
-  padding: 2rem;
+  flex: 0 0 30%; /* 左侧30%宽度 */
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
 }
 
 .create-room {
-  border-right: 1px solid #eee;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
 }
 
-.join-room {
-  border-left: 1px solid #eee;
+.create-room h2 {
+  color: #4a76a8;
+  margin-bottom: 10px;
 }
 
-.divider {
-  position: relative;
-  height: 100%;
+.create-room p {
+  color: #666;
+  margin-bottom: 20px;
+}
+
+/* 房间列表区域 - 右侧70% */
+.rooms-list-container {
+  flex: 1;
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
   display: flex;
+  flex-direction: column;
+}
+
+.rooms-list-container h2 {
+  color: #4a76a8;
+  margin-bottom: 20px;
+}
+
+/* 房间滚动容器 */
+.rooms-scroll-container {
+  flex: 1;
+  display: flex;
+  position: relative;
+  overflow: hidden;
+}
+
+.scroll-button {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  background-color: rgba(74, 118, 168, 0.7);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.scroll-button:hover {
+  background-color: #4a76a8;
+}
+
+.scroll-button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.scroll-button.left {
+  left: 10px;
+}
+
+.scroll-button.right {
+  right: 10px;
+}
+
+/* 房间视窗 - 显示6x6网格 */
+.rooms-viewport {
+  flex: 1;
+  overflow: hidden;
+}
+
+.rooms-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr); /* 6列 */
+  grid-template-rows: repeat(6, 1fr);    /* 6行 */
+  gap: 15px;
+  height: 100%;
+  width: 100%;
+  transition: transform 0.3s ease;
+}
+
+/* 房间卡片样式 */
+.room-card {
+  background-color: #f9f9f9;
+  border-radius: 6px;
+  padding: 15px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid #eee;
+  position: relative;
+}
+
+.room-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  background-color: #f0f7ff;
+}
+
+.room-name {
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 5px;
+  text-align: center;
+}
+
+.room-id {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.room-lock-icon {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  font-size: 0.9rem;
+}
+
+.no-rooms-message {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
   align-items: center;
   color: #666;
 }
 
-.divider span {
-  background: white;
-  padding: 0 1rem;
-}
-
-.room-input {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  margin: 1.5rem 0;
-  font-size: 1rem;
-  transition: border-color 0.3s;
-}
-
-.room-input:focus {
-  outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
-}
-
+/* 按钮样式 */
 .action-button {
-  width: 100%;
-  padding: 12px 24px;
+  padding: 10px 20px;
   border: none;
-  border-radius: 8px;
-  font-size: 1rem;
+  border-radius: 4px;
+  font-weight: bold;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: all 0.2s;
 }
 
 .action-button.primary {
-  background: #007bff;
+  background-color: #4a76a8;
   color: white;
 }
 
-.action-button.secondary {
-  background: #28a745;
-  color: white;
+.action-button.primary:hover {
+  background-color: #3a6698;
 }
 
-.action-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+.action-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
-/* 快速指引 */
-.quick-guide {
-  margin-top: 4rem;
-  text-align: center;
-}
-
-.guide-steps {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 2rem;
-  margin-top: 2rem;
-}
-
-.step {
-  background: white;
-  padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.step-number {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: #007bff;
-  color: white;
+/* 模态框样式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0,0,0,0.5);
   display: flex;
-  align-items: center;
   justify-content: center;
-  margin: 0 auto 1rem;
+  align-items: center;
+  z-index: 1000;
 }
 
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .room-actions {
-    grid-template-columns: 1fr;
-    padding: 2rem;
-  }
-  
-  .create-room, .join-room {
-    border: none;
-    padding: 1.5rem;
-  }
-  
-  .divider {
-    display: none;
-  }
-  
-  .guide-steps {
-    grid-template-columns: 1fr;
-  }
+.password-modal,
+.create-room-modal {
+  background-color: white;
+  padding: 25px;
+  border-radius: 8px;
+  width: 350px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.password-modal h3,
+.create-room-modal h3 {
+  margin-top: 0;
+  color: #4a76a8;
+}
+
+.password-modal p {
+  margin: 10px 0 20px;
+  color: #666;
+}
+
+.password-input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 20px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.cancel-button {
+  padding: 8px 15px;
+  background-color: #f0f0f0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.cancel-button:hover {
+  background-color: #e0e0e0;
+}
+
+.confirm-button {
+  padding: 8px 15px;
+  background-color: #4a76a8;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.confirm-button:hover {
+  background-color: #3a6698;
+}
+
+/* 加载动画 */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid #f3f3f3;
+  border-top: 5px solid #4a76a8;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }

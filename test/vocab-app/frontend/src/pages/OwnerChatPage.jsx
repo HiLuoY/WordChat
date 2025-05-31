@@ -3,83 +3,60 @@ import { useNavigate } from 'react-router-dom';
 import { FaComments, FaBolt } from 'react-icons/fa';
 import { io } from 'socket.io-client';
 import Navbar from '../components/Navbar';
-import RankingSidebar from '../components/RankingPanel'; // 导入新组件
+import RankingSidebar from '../components/RankingPanel';
 import '../styles/ChatPage.css';
 
 // 默认头像URL
 const DEFAULT_AVATAR = '/default-avatar.jpg';
 
-// --------测试补充的一些东西，记得删哈，测试用户数据
-const TEST_USER = {
-  userId: '1',
-  nickname: 'TestUser',
-  avatar: '/default-avatar.jpg'
-};
-
-const ChatPage = () => {
+const OwnerChatPage = () => {
   const navigate = useNavigate();
+  
+  // 从 localStorage 读取用户信息和房间信息
+  const [userData, setUserData] = useState(() => {
+    const savedUser = localStorage.getItem('userInfo');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
+
+  const [roomInfo, setRoomInfo] = useState(() => {
+    const savedRoom = localStorage.getItem('currentRoom');
+    return savedRoom ? JSON.parse(savedRoom) : null;
+  });
+
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [socket, setSocket] = useState(null);
-  const [roomId, setRoomId] = useState('1'); // 测试房间ID
+  const [roomId, setRoomId] = useState(roomInfo?.room_id || '');
   const [challenge, setChallenge] = useState(null);
   const [countdown, setCountdown] = useState(0);
-  
-  // 添加排行榜状态----------------------记得删
-  const [rankings, setRankings] = useState([
-    { id: 1, name: '用户A', score: 100 },
-    { id: 2, name: '用户B', score: 80 },
-    { id: 3, name: '用户C', score: 60 },
-  ]);
-
-  //------------------to do 添加获取排行榜数据的effect
-  useEffect(() => {
-    // 这里可以添加获取真实排行榜数据的逻辑
-    const fetchRankings = async () => {
-      try {
-        // const response = await fetch('http://localhost:5000/api/rankings');
-        // const data = await response.json();
-        // setRankings(data);
-      } catch (error) {
-        console.error('获取排行榜数据失败:', error);
-      }
-    };
-    
-    fetchRankings();
-  }, []);
-
-  // 初始化测试数据
-  useEffect(() => {
-    // 设置测试用户信息
-    localStorage.setItem('userInfo', JSON.stringify(TEST_USER));
-    localStorage.setItem('userAvatar', TEST_USER.avatar);
-    localStorage.setItem('currentRoomId', roomId);
-
-    // 设置一些测试消息
-    setMessages([
-      {
-        content: '欢迎来到测试房间！',
-        type: 'system'
-      }
-    ]);
-  }, []);
-
-  // 在useEffect中添加自动滚动逻辑
+  const [rankings, setRankings] = useState([]);
+  const [userRank, setUserRank] = useState(null);
+  const [systemPopup, setSystemPopup] = useState({ show: false, message: '' });
+  // 消息自动滚动
   useEffect(() => {
     scrollToBottom();
-  }, [messages]); // 当消息更新时自动滚动到底部
+  }, [messages]);
 
+  // 显示系统弹窗
+  const showSystemPopup = (message) => {
+    setSystemPopup({ show: true, message });
+    setTimeout(() => {
+      setSystemPopup({ show: false, message: '' });
+    }, 3000); // 3秒后自动关闭
+  };
 
   // 初始化 Socket.IO 连接
   useEffect(() => {
-    const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
-    const currentRoomId = localStorage.getItem('currentRoomId');
-    setRoomId(currentRoomId);
+    console.log('当前用户信息:', userData);
+    if (!userData || !roomInfo) {
+      navigate('/');
+      return;
+    }
 
-    // 创建 Socket.IO 连接，自动携带 cookie 中的 session
     const socketInstance = io('http://localhost:5000', {
       withCredentials: true,
-      transports: ['websocket']
+      transports: ['websocket'],
+      query: { room_id: roomInfo.room_id }
     });
 
     setSocket(socketInstance);
@@ -87,6 +64,24 @@ const ChatPage = () => {
     // Socket.IO 事件监听
     socketInstance.on('connect', () => {
       console.log('Socket.IO 连接已建立');
+      socketInstance.emit('join_room', {
+        room_id: roomInfo.room_id,
+        user_id: userData.user_id
+      });
+    });
+
+    socketInstance.on('room_joined', (data) => {
+      console.log('成功加入房间:', data);
+    });
+
+    socketInstance.on('leaderboard_update', (data) => {
+      console.log('收到排行榜更新:', data);
+      setRankings(data);
+    });
+
+    socketInstance.on('user_ranking', (data) => {
+      console.log('收到用户排名:', data.rank);
+      setUserRank(data.rank);
     });
 
     socketInstance.on('new_message', (data) => {
@@ -94,7 +89,7 @@ const ChatPage = () => {
         content: data.content,
         sender: data.nickname,
         avatar: data.avatar || DEFAULT_AVATAR,
-        isMe: data.user_id === userInfo.userId,
+        isMe: data.user_id === userData.user_id,
         correct: data.correct
       }]);
     });
@@ -104,7 +99,7 @@ const ChatPage = () => {
         challengeId: data.challenge_id,
         meaning: data.word_meaning,
       });
-      setCountdown(30); // 设置30秒倒计时
+      setCountdown(30);
     });
 
     socketInstance.on('reveal_answer', (data) => {
@@ -112,16 +107,12 @@ const ChatPage = () => {
         ...prev,
         word: data.word,
       }));
-      setCountdown(5); // 设置5秒答案展示时间
+      setCountdown(5);
     });
 
+    // 改为：
     socketInstance.on('challenge_end', () => {
-      // 添加系统消息通知挑战结束
-      setMessages(prev => [...prev, {
-        content: '单词挑战已结束！',
-        type: 'system'
-      }]);
-      // 重置挑战状态
+      showSystemPopup('单词挑战已结束！');
       setChallenge(null);
       setCountdown(0);
     });
@@ -129,71 +120,52 @@ const ChatPage = () => {
     socketInstance.on('answer_feedback', (data) => {
       setMessages(prev => [...prev, {
         content: data.mask,
-        sender: userInfo.nickname,
-        avatar: userInfo.avatar || DEFAULT_AVATAR,
-        isMe: data.user_id === userInfo.userId,
+        sender: data.nickname,
+        avatar: data.avatar || DEFAULT_AVATAR,
+        isMe: data.user_id === userData.user_id,
         correct: data.correct,
       }]);
     });
 
     socketInstance.on('system_message', (data) => {
-      setMessages(prev => [...prev, {
-        content: data.message,
-        type: 'system'
-      }]);
+      showSystemPopup(data.message);
     });
 
-    // 倒计时效果
+    // 倒计时
     const timer = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 0) return 0;
-        return prev - 1;
-      });
+      setCountdown(prev => prev > 0 ? prev - 1 : 0);
     }, 1000);
 
     return () => {
       clearInterval(timer);
       socketInstance.disconnect();
     };
-  }, []);
+  }, [userData, roomInfo, navigate]);
 
-  // 发送消息（现在同时处理普通消息和答案）
+  // 发送消息
   const sendMessage = () => {
-    if (newMessage.trim() && socket && socket.connected) {
-      const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
-      
-      if (challenge) {
-        // 如果在挑战中，发送答案
-        socket.emit('submit_answer', {
-          room_id: roomId,
-          user_id: userInfo.userId,
-          answer: newMessage.trim()
-        });
-      } else {
-        // // 普通消息
-        // setMessages(prev => [...prev, {
-        //   content: newMessage.trim(),
-        //   sender: userInfo.nickname,
-        //   avatar: userInfo.avatar || DEFAULT_AVATAR,
-        //   isMe: true
-        // }]);
+    if (!newMessage.trim() || !socket || !socket.connected || !userData || !roomInfo) return;
 
-        socket.emit('message', {
-          room_id: roomId,
-          content: newMessage.trim(),
-          user_id: userInfo.userId
-        });
-      }
-      
-      setNewMessage('');
-      // 关键：滚动到底部（使用 setTimeout 确保 DOM 更新完成）
-      setTimeout(() => {
-        scrollToBottom();
-      }, 0);
+    if (challenge) {
+      socket.emit('submit_answer', {
+        room_id: roomInfo.room_id,
+        user_id: userData.user_id,
+        answer: newMessage.trim(),
+        nickname: userData.nickname,
+        avatar: userData.avatar || DEFAULT_AVATAR
+      });
+    } else {
+      socket.emit('message', {
+        room_id: roomInfo.room_id,
+        content: newMessage.trim(),
+        user_id: userData.user_id
+      });
     }
+    
+    setNewMessage('');
+    setTimeout(scrollToBottom, 0);
   };
 
-  // 修改滚动函数
   const scrollToBottom = () => {
     const messagesContainer = document.querySelector('.chat-content');
     if (messagesContainer) {
@@ -201,30 +173,21 @@ const ChatPage = () => {
     }
   };
 
-  //to do: 添加离开房间功能
-  //----------------------------------------------------------- 处理离开房间
   const handleLeaveRoom = () => {
-    const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
-    
-    if (socket && socket.connected) {
+    if (socket && socket.connected && userData && roomInfo) {
       socket.emit('leave_room', {
-        room_id: roomId,
-        user_id: userInfo.userId
+        room_id: roomInfo.room_id,
+        user_id: userData.user_id
       });
     }
-    
-    // 清除房间相关的本地存储
-    localStorage.removeItem('currentRoomId');
-    
-    // 导航回大厅
-    navigate('/lobby');
+    localStorage.removeItem('currentRoom');
+    navigate('/home');
   };
-  //-------------------------------------------------------------
+
   // 发起挑战
   const handleChallenge = () => {
     const wordCount = prompt('请输入本轮挑战的词数：');
     if (wordCount && !isNaN(wordCount)) {
-      const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
       fetch('http://localhost:5000/api/challenge/create', {
         method: 'POST',
         headers: {
@@ -232,9 +195,9 @@ const ChatPage = () => {
         },
         credentials: 'include',
         body: JSON.stringify({
-          room_id: roomId,
+          room_id: roomInfo.room_id,
           num_words: parseInt(wordCount),
-          user_id: userInfo.userId
+          user_id: userData.user_id
         })
       });
     }
@@ -242,13 +205,21 @@ const ChatPage = () => {
 
   return (
     <div className="chat-container">
+      {/* 系统消息弹窗 */}
+      {systemPopup.show && (
+        <div className="system-popup">
+          <div className="system-popup-content">
+            {systemPopup.message}
+          </div>
+        </div>
+      )}
+
       <Navbar
         onLeaveRoom={handleLeaveRoom}
-        //--------可根据需要修改，根据后端实现的踢人逻辑进行修改
         onKickUser={(userId) => {
           if (socket && socket.connected) {
             socket.emit('kick_user', {
-              room_id: roomId,
+              room_id: roomInfo.room_id,
               target_user_id: userId
             });
           }
@@ -257,15 +228,14 @@ const ChatPage = () => {
         showRoomControls={true}
         showKickButton={true}
       />
-      {/* 主内容区域 - 分为左右两部分 */}
       <div className="main-content-container">
-        {/* 使用独立的排行榜组件 */}
-        <RankingSidebar rankings={rankings} />
-
-        {/* 右侧聊天区域 (5/6宽度) */}
-        <div className="chat-area">
+        <RankingSidebar 
+          rankings={rankings} 
+          userRank={userRank}
+          currentUserId={userData?.user_id}
+        />
       
-          {/* 聊天内容区域（可滚动） */}
+        <div className="chat-area">
           <div className="chat-content">
             {challenge && (
               <div className="challenge-display">
@@ -279,7 +249,10 @@ const ChatPage = () => {
               </div>
             )}
             {messages.map((msg, index) => (
-              <div key={index} className={`message ${msg.type === 'system' ? 'system-message' : msg.isMe ? 'my-message' : ''} ${msg.correct !== undefined ? (msg.correct ? 'correct-answer' : 'wrong-answer') : ''}`}>
+              <div 
+                key={index} 
+                className={`message ${msg.type === 'system' ? 'system-message' : msg.isMe ? 'my-message' : ''} ${msg.correct ? 'correct-answer' : msg.correct === false ? 'wrong-answer' : ''}`}
+              >
                 {msg.type !== 'system' && (
                   <div className="message-sender">
                     <div className="avatar-container">
@@ -297,14 +270,10 @@ const ChatPage = () => {
                     <div className="message-content">{msg.content}</div>
                   </div>
                 )}
-                {msg.type === 'system' && (
-                  <div className="message-content">{msg.content}</div>
-                )}
               </div>
             ))}
           </div>
 
-          {/* 消息输入框和挑战按钮（固定在底部） */}
           <div className="message-input-container">
             <button onClick={handleChallenge} className="challenge-button">
               <FaBolt /> 发起挑战
@@ -328,4 +297,4 @@ const ChatPage = () => {
   );
 };
 
-export default ChatPage;
+export default OwnerChatPage;

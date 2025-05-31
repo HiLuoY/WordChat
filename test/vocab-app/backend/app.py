@@ -8,15 +8,6 @@ from functools import wraps
 from flask_cors import CORS
 import eventlet
 
-
-# 导入数据模型
-# from models.user_model import User
-# from models.room_model import Room
-# from models.message_model import Message
-# from models.room_member_model import RoomMember
-# from models.wordchallenge_models import WordChallenge  # 单词挑战模型
-# from models.word_model import Word  # 单词模型
-
 # 导入控制器
 from controllers.room_controller import room_bp  # 房间控制器
 from challenges import challenge_api,init_socketio # 单词挑战蓝图
@@ -56,41 +47,6 @@ def login_required(f):
             return jsonify({'code': 401, 'message': '请先登录'}), 401
         return f(*args, **kwargs)
     return decorated_function
-
-# ==================== 基础路由 ====================
-@app.route('/')
-def index():
-    """首页"""
-    return render_template('chat.html')
-
-@app.route('/test')
-def test():
-    """测试页面路由"""
-    return render_template('test.html')
-
-@app.route('/upload')
-def upload_page():
-    """显示上传页面"""
-    return render_template('upload.html')
-
-#--------------注册登录 -----------------
-
-
-
-# --------------用户认证 -----------------
-
-
-
-
-# --------------单词挑战 -----------------
-
-
-
-#--------------房间聊天 -----------------
-
-
-
-
 
 
 # ==================== WebSocket事件处理 ====================
