@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 DB_CONFIG = {
     'host': 'localhost',
     'user': 'root',
-    'password': 'hily0403',  # 替换为你的 MySQL 密码
+    'password': 'test',  # 替换为你的 MySQL 密码
     'database': 'elp',
     'cursorclass': DictCursor
 }

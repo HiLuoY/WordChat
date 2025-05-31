@@ -128,6 +128,7 @@ const GuestChatPage = () => {
       }]);
     });
 
+
     socketInstance.on('system_message', (data) => {
       showSystemPopup(data.message);
     });
@@ -205,7 +206,7 @@ const GuestChatPage = () => {
         <RankingSidebar 
           rankings={rankings} 
           userRank={userRank}
-          currentUserId={userData?.user_id}
+          currentUserId={userData ? userData.user_id : null}  // 关键修复
         />
       
         <div className="chat-area">

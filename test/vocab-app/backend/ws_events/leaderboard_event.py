@@ -195,3 +195,32 @@ def register_rankinglist_events(socketio):
             # 捕获异常并记录错误日志
             logger.error(f"获取用户排名失败: 用户ID={user_id}, 房间ID={room_id}, 错误信息={str(e)}")
             emit('error', {'code': 500, 'message': '获取排名失败'})
+
+     # 新增函数：全量更新排行榜
+    @socketio.on('update_all_rankings')
+    def handle_update_all_rankings(data):
+        """全量更新所有用户排名"""
+        room_id = data.get('room_id')
+        try:
+            leaderboard = Leaderboard.get_room_leaderboard(room_id)
+            processed = [{
+                'nickname': item[0],
+                'score': item[1],
+                'updated_at': item[2].isoformat(),
+                'user_id': item[3],
+                'rank': index + 1
+            } for index, item in enumerate(leaderboard)]
+            
+            # 广播完整排行榜
+            emit('leaderboard_update', processed, room=f"ranking_{room_id}")
+            
+            # 更新每个用户的个人排名
+            for user in leaderboard:
+                user_id = user[3]
+                rank = Leaderboard.get_user_rank(room_id, user_id)
+                socketio.emit('user_ranking', {'rank': rank}, room=f"ranking_{room_id}")
+                
+            logger.info(f"全量排名更新完成 | room_id={room_id}")
+        except Exception as e:
+            logger.error(f"全量更新失败: {str(e)}")
+            emit('error', {'code': 500, 'message': '全量更新失败'})

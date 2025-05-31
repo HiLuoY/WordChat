@@ -1,68 +1,227 @@
-/* 排行榜组件样式 */
+/* 侧边栏整体样式 */
 .ranking-sidebar {
-  width: 16.666%; /* 1/6宽度 */
-  background-color: #f8f9fa;
-  border-right: 1px solid #dee2e6;
-  padding: 15px;
-  overflow-y: auto;  /* 如果需要排行榜独立滚动 */
-  height: 100%;  /* 填充高度 */
+  width: 280px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%);
+  padding: 20px;
+  border-radius: 0 16px 16px 0;
+  box-shadow: 2px 0 15px rgba(0,0,0,0.08);
+  overflow-y: auto;
+  height: 100%;
 }
 
-.ranking-header {
+/* 当前用户排名 - 尊贵视觉设计 */
+.current-user-rank {
+  background: linear-gradient(135deg, rgba(46, 204, 113, 0.15) 0%, rgba(52, 152, 219, 0.2) 100%);
+  border-radius: 16px;
+  padding: 16px 20px;
+  margin-bottom: 25px;
   display: flex;
   align-items: center;
-  margin-bottom: 15px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #dee2e6;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 6px 20px rgba(46, 204, 113, 0.25);
+  border: 1px solid rgba(46, 204, 113, 0.4);
+  animation: pulse-glow 2.5s infinite;
 }
 
-.ranking-header h3 {
-  margin: 0 0 0 10px;
+/* 呼吸光效动画 */
+@keyframes pulse-glow {
+  0% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.4); }
+  70% { box-shadow: 0 0 0 12px rgba(46, 204, 113, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); }
+}
+
+/* 奖杯图标样式 */
+.current-user-rank .trophy-icon {
+  color: #ffd700;
+  font-size: 28px;
+  filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.6));
+  margin-right: 15px;
+}
+
+/* 排名文字样式 */
+.current-user-rank > span:first-of-type {
   font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+  letter-spacing: 0.5px;
 }
 
-.trophy-icon {
-  color: #ffc107;
-  font-size: 20px;
+/* 排名数字特效 */
+.rank-number {
+  font-weight: 800;
+  font-size: 2.2rem;
+  color: #e74c3c;
+  margin: 0 10px;
+  text-shadow: 0 2px 4px rgba(231, 76, 60, 0.3);
+  position: relative;
+  background: linear-gradient(45deg, #e74c3c, #c0392b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
+/* 分数标签样式 */
+.user-score {
+  background: linear-gradient(to right, #3498db, #2980b9);
+  color: white;
+  border-radius: 20px;
+  padding: 6px 15px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-left: auto;
+  box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3);
+  display: flex;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+}
+
+/* 装饰性光效 */
+.current-user-rank::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 100px;
+  height: 100px;
+  background: radial-gradient(circle, rgba(46, 204, 113, 0.2) 0%, transparent 70%);
+  border-radius: 50%;
+  z-index: 1;
+}
+
+.current-user-rank::after {
+  content: "";
+  position: absolute;
+  bottom: -30%;
+  left: -10%;
+  width: 80px;
+  height: 80px;
+  background: radial-gradient(circle, rgba(52, 152, 219, 0.15) 0%, transparent 70%);
+  border-radius: 50%;
+  z-index: 1;
+}
+
+/* 排行榜列表样式 */
 .ranking-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
+/* 排行榜项 - 卡片设计 */
 .ranking-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
-  background-color: #fff;
-  border-radius: 5px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  padding: 12px 15px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
 
+/* 悬停动画效果 */
+.ranking-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.12);
+}
+
+/* 前三名特殊样式 */
+.ranking-item:nth-child(1) {
+  border-left: 4px solid #ffd700;
+  background: linear-gradient(90deg, rgba(255,215,0,0.08) 0%, white 100%);
+}
+.ranking-item:nth-child(2) {
+  border-left: 4px solid #c0c0c0;
+}
+.ranking-item:nth-child(3) {
+  border-left: 4px solid #cd7f32;
+}
+
+/* 排名数字 - 圆形徽章 */
 .ranking-item .rank {
-  font-weight: bold;
-  color: #333;
-  min-width: 20px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #f0f2f5;
+  color: #555;
+  font-weight: 700;
+  font-size: 14px;
 }
 
+/* 前三名徽章特殊样式 */
+.ranking-item:nth-child(1) .rank {
+  background: linear-gradient(135deg, #ffd700, #ffa500);
+  color: white;
+  box-shadow: 0 3px 6px rgba(255,215,0,0.3);
+}
+.ranking-item:nth-child(2) .rank {
+  background: linear-gradient(135deg, #c0c0c0, #a9a9a9);
+  color: white;
+  box-shadow: 0 3px 6px rgba(192,192,192,0.3);
+}
+.ranking-item:nth-child(3) .rank {
+  background: linear-gradient(135deg, #cd7f32, #a0522d);
+  color: white;
+  box-shadow: 0 3px 6px rgba(205,127,50,0.3);
+}
+
+/* 用户名样式 */
 .ranking-item .user-name {
   flex: 1;
-  margin: 0 10px;
+  margin: 0 15px;
+  font-weight: 500;
+  color: #34495e;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/* 分数样式 - 带单位标识 */
 .ranking-item .score {
-  color: #ff6b6b;
+  font-size: 16px;
   font-weight: bold;
+  color: #e74c3c;
+  position: relative;
+}
+.ranking-item .score::after {
+  content: '分';
+  font-size: 12px;
+  margin-left: 3px;
+  opacity: 0.7;
 }
 
+/* 奖牌装饰（前三名） */
+.ranking-item:nth-child(-n+3)::before {
+  content: "🥇";
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  font-size: 40px;
+  opacity: 0.15;
+  z-index: 0;
+}
+.ranking-item:nth-child(2)::before { content: "🥈"; }
+.ranking-item:nth-child(3)::before { content: "🥉"; }
+
+/* 空状态提示 */
 .no-rankings {
   text-align: center;
-  color: #666;
-  padding: 10px;
+  padding: 30px;
+  color: #7f8c8d;
+  font-style: italic;
+}
+
+/* 滚动条美化 */
+.ranking-sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+.ranking-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.15);
+  border-radius: 3px;
 }
