@@ -1,21 +1,24 @@
 import React from 'react';
-import { FaTrophy, FaCrown, FaUser } from 'react-icons/fa';
+import { FaTrophy, FaCrown, FaUser, FaStar } from 'react-icons/fa'; // 新增FaStar图标
 import PropTypes from 'prop-types';
 import "../styles/Ranking.css";
 
 const RankingSidebar = ({ rankings, userRank, currentUserId }) => {
-  // 获取当前用户在排行榜中的位置
   const currentUserInRankings = rankings.find(user => user.id === currentUserId);
   
   return (
     <div className="ranking-sidebar">
-      {/* 显示当前用户排名 */}
+      {/* 优化后的当前用户排名区域 */}
       {userRank !== null && (
         <div className="current-user-rank">
+          <FaTrophy className="trophy-icon" /> {/* 新增奖杯图标 */}
           <span>您的排名: </span>
           <span className="rank-number">#{userRank}</span>
           {currentUserInRankings && (
-            <span className="user-score">({currentUserInRankings.score}分)</span>
+            <span className="user-score">
+              <FaStar style={{ marginRight: "6px", fontSize: "0.9em" }} /> {/* 新增星星图标 */}
+              {currentUserInRankings.score}分
+            </span>
           )}
         </div>
       )}

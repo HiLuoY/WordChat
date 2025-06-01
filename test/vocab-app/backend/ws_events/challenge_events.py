@@ -104,9 +104,9 @@ def register_challenge_events(socketio):
                 leaderboard = Leaderboard.get_room_leaderboard(room_id, limit=10)
                 socketio.emit('leaderboard_update', leaderboard, room=str(room_id))
 
-                # 发送个人排名更新
-                rank = Leaderboard.get_user_rank(room_id, user_id)
-                socketio.emit('user_ranking', {'rank': rank}, room=request.sid)
+                # 发送排名更新
+                
+                socketio.emit('update_all_rankings', {'room_id': room_id}, room=f"ranking_{room_id}")
 
         except Exception as e:
             logger.error(f"提交答案失败: {str(e)}", exc_info=True)

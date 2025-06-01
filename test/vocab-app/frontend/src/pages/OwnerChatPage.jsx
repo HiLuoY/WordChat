@@ -125,7 +125,10 @@ const OwnerChatPage = () => {
         isMe: data.user_id === userData.user_id,
         correct: data.correct,
       }]);
+      
+      
     });
+
 
     socketInstance.on('system_message', (data) => {
       showSystemPopup(data.message);
@@ -232,7 +235,7 @@ const OwnerChatPage = () => {
         <RankingSidebar 
           rankings={rankings} 
           userRank={userRank}
-          currentUserId={userData?.user_id}
+          currentUserId={userData ? userData.user_id : null}  // 关键修复
         />
       
         <div className="chat-area">
