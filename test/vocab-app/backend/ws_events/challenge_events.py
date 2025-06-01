@@ -101,12 +101,37 @@ def register_challenge_events(socketio):
                 Leaderboard.update_score(room_id, user_id, 10)
 
                 # 广播排行榜更新
-                leaderboard = Leaderboard.get_room_leaderboard(room_id, limit=10)
-                socketio.emit('leaderboard_update', leaderboard, room=str(room_id))
+                #leaderboard = Leaderboard.get_room_leaderboard(room_id, limit=10)
+                #socketio.emit('leaderboard_update', leaderboard, room=str(room_id))
 
                 # 发送排名更新
+                #socketio.emit('user_ranking', 
+                #    {'user_id': user_id, 'rank': Leaderboard.handle_my_ranking_request(room_id, user_id)},
+                #    room=str(room_id))
+                # 发送事件时使用相同房间前缀
+                #socketio.emit('update_all_rankings', room=f"ranking_{room_id}")  # 将str(room_id)改为f"ranking_{room_id}"
+                # 修改 handle_update_all_rankings 中的循环：
+                # 获取排行榜数据
+                leaderboard = Leaderboard.get_room_leaderboard(room_id, limit=10)
+                if leaderboard is not None:
+                    socketio.emit('leaderboard_update', leaderboard, room=str(room_id))
+                else:
+                    logger.error(f"获取排行榜失败: room_id={room_id}")
+
+                # 获取房间内所有用户的ID（需要实现获取房间用户列表的方法）
+                room_users = Leaderboard.get_room_users(room_id)  # 应返回用户ID列表
+                if room_users is None:
+                    logger.error(f"获取房间用户列表失败: room_id={room_id}")
+                else:
+                    # 遍历房间内所有用户
+                    for user_id in room_users:
+                        # 获取每个用户的排名
+                        rank = Leaderboard.get_user_rank(room_id, user_id)
+                        socketio.emit('user_ranking', 
+                            {'user_id': user_id, 'rank': rank},
+                            room=str(room_id))
+                        
                 
-                socketio.emit('update_all_rankings', {'room_id': room_id}, room=f"ranking_{room_id}")
 
         except Exception as e:
             logger.error(f"提交答案失败: {str(e)}", exc_info=True)

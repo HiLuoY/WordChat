@@ -32,6 +32,7 @@ const OwnerChatPage = () => {
   const [rankings, setRankings] = useState([]);
   const [userRank, setUserRank] = useState(null);
   const [systemPopup, setSystemPopup] = useState({ show: false, message: '' });
+  
   // 消息自动滚动
   useEffect(() => {
     scrollToBottom();
@@ -79,11 +80,12 @@ const OwnerChatPage = () => {
       setRankings(data);
     });
 
-    socketInstance.on('user_ranking', (data) => {
-      console.log('收到用户排名:', data.rank);
-      setUserRank(data.rank);
-    });
 
+    socketInstance.on('user_ranking', (data) => {
+      if (data.user_id === userData.user_id) {
+        setUserRank(data.rank);
+      }
+    });
     socketInstance.on('new_message', (data) => {
       setMessages(prev => [...prev, {
         content: data.content,

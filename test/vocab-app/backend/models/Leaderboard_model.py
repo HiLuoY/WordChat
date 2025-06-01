@@ -139,6 +139,27 @@ class Leaderboard:
             connection.close()
 
     @staticmethod
+    def get_room_users(room_id):
+        """
+        获取房间内所有用户的ID列表
+        :param room_id: 房间ID
+        :return: 用户ID列表（如果无记录则返回空列表）
+        """
+        connection = get_db_connection()
+        try:
+            with connection.cursor() as cursor:
+                sql = "SELECT user_id FROM Leaderboard WHERE room_id = %s"
+                cursor.execute(sql, (room_id,))
+                result = cursor.fetchall()
+                # 提取所有user_id并返回列表
+                return [row['user_id'] for row in result] if result else []
+        except Exception as e:
+            print(f"获取房间用户列表失败: {e}")
+            return []  # 出错时返回空列表
+        finally:
+            connection.close()
+
+    @staticmethod
     def initialize_user_score(room_id, user_id):
         """
         初始化用户在房间中的分数为0（不存在时创建，存在时重置为0）

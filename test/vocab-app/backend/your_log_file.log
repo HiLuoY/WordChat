@@ -2,3 +2,43 @@
 2025-05-17 15:43:56,432 - your_logger_name - ERROR - 提交答案失败: 房间状态不存在 | room_id=1
 2025-05-25 16:24:24,463 - your_logger_name - ERROR - 提交答案失败: 房间状态不存在 | room_id=1
 2025-05-31 22:35:14,933 - your_logger_name - ERROR - 提交答案失败: 房间状态不存在 | room_id=48
+2025-06-01 15:39:47,891 - your_logger_name - ERROR - 提交答案失败: type object 'Leaderboard' has no attribute 'get_user_ranking'
+Traceback (most recent call last):
+  File "D:\git\WordChat\test\vocab-app\backend\ws_events\challenge_events.py", line 108, in on_submit_answer
+    socketio.emit('user_ranking', {'rank': Leaderboard.get_user_ranking(room_id, user_id)}, room=request.sid)
+AttributeError: type object 'Leaderboard' has no attribute 'get_user_ranking'
+2025-06-01 15:40:38,772 - your_logger_name - ERROR - 提交答案失败: type object 'Leaderboard' has no attribute 'get_user_ranking'
+Traceback (most recent call last):
+  File "D:\git\WordChat\test\vocab-app\backend\ws_events\challenge_events.py", line 108, in on_submit_answer
+    socketio.emit('user_ranking', {'rank': Leaderboard.get_user_ranking(room_id, user_id)}, room=request.sid)
+AttributeError: type object 'Leaderboard' has no attribute 'get_user_ranking'
+2025-06-01 15:44:33,067 - your_logger_name - ERROR - 提交答案失败: type object 'Leaderboard' has no attribute 'get_user_ranking'
+Traceback (most recent call last):
+  File "D:\git\WordChat\test\vocab-app\backend\ws_events\challenge_events.py", line 109, in on_submit_answer
+    {'user_id': user_id, 'rank': Leaderboard.get_user_ranking(room_id, user_id)},
+AttributeError: type object 'Leaderboard' has no attribute 'get_user_ranking'
+2025-06-01 15:47:03,153 - your_logger_name - ERROR - 提交答案失败: type object 'Leaderboard' has no attribute 'get_my_ranking'
+Traceback (most recent call last):
+  File "D:\git\WordChat\test\vocab-app\backend\ws_events\challenge_events.py", line 109, in on_submit_answer
+    {'user_id': user_id, 'rank': Leaderboard.get_my_ranking(room_id, user_id)},
+AttributeError: type object 'Leaderboard' has no attribute 'get_my_ranking'
+2025-06-01 15:48:10,326 - your_logger_name - ERROR - 提交答案失败: type object 'Leaderboard' has no attribute 'handle_my_ranking_request'
+Traceback (most recent call last):
+  File "D:\git\WordChat\test\vocab-app\backend\ws_events\challenge_events.py", line 109, in on_submit_answer
+    {'user_id': user_id, 'rank': Leaderboard.handle_my_ranking_request(room_id, user_id)},
+AttributeError: type object 'Leaderboard' has no attribute 'handle_my_ranking_request'
+2025-06-01 16:01:55,406 - your_logger_name - ERROR - 提交答案失败: 3
+Traceback (most recent call last):
+  File "D:\git\WordChat\test\vocab-app\backend\ws_events\challenge_events.py", line 115, in on_submit_answer
+    user_id = user[3]
+KeyError: 3
+2025-06-01 16:19:13,812 - your_logger_name - ERROR - 提交答案失败: type object 'Leaderboard' has no attribute 'get_room_users'
+Traceback (most recent call last):
+  File "D:\git\WordChat\test\vocab-app\backend\ws_events\challenge_events.py", line 122, in on_submit_answer
+    room_users = Leaderboard.get_room_users(room_id)  # 应返回用户ID列表
+AttributeError: type object 'Leaderboard' has no attribute 'get_room_users'
+2025-06-01 16:22:38,826 - your_logger_name - ERROR - 提交答案失败: name 'get_user_sid' is not defined
+Traceback (most recent call last):
+  File "D:\git\WordChat\test\vocab-app\backend\ws_events\challenge_events.py", line 132, in on_submit_answer
+    user_sid = get_user_sid(user_id)  # 需实现此辅助函数
+NameError: name 'get_user_sid' is not defined

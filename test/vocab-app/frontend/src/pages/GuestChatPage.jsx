@@ -80,10 +80,17 @@ const GuestChatPage = () => {
       setRankings(data);
     });
 
+  // 监听个人排名更新（双保险）
+  socketInstance.on('user_ranking', (data) => {
+    if (data.user_id === userData.user_id) {
+      setUserRank(data.rank);
+    }
+  });
+  /*
     socketInstance.on('user_ranking', (data) => {
       console.log('收到用户排名:', data.rank);
       setUserRank(data.rank);
-    });
+    });*/
 
     socketInstance.on('new_message', (data) => {
       setMessages(prev => [...prev, {
