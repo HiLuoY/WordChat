@@ -14,12 +14,7 @@ const RankingSidebar = ({ rankings, userRank, currentUserId }) => {
           <FaTrophy className="trophy-icon" /> {/* 新增奖杯图标 */}
           <span>您的排名: </span>
           <span className="rank-number">#{userRank}</span>
-          {currentUserInRankings && (
-            <span className="user-score">
-              <FaStar style={{ marginRight: "6px", fontSize: "0.9em" }} /> {/* 新增星星图标 */}
-              {currentUserInRankings.score}分
-            </span>
-          )}
+          
         </div>
       )}
 
@@ -37,14 +32,14 @@ const RankingSidebar = ({ rankings, userRank, currentUserId }) => {
               
               <span className="user-avatar">
                 {user.avatar ? (
-                  <img src={user.avatar} alt={user.name} />
+                  <img src={user.avatar} alt={user.nickname} />
                 ) : (
                   <FaUser className="default-avatar" />
                 )}
               </span>
               
-              <span className="user-name" title={user.name}>
-                {user.name}
+              <span className="user-nickname" title={user.nickname}>
+                {user.nickname}
                 {user.id === currentUserId && <span className="you-tag">(你)</span>}
               </span>
               
@@ -66,7 +61,7 @@ RankingSidebar.propTypes = {
   rankings: PropTypes.arrayOf(
     PropTypes.shape({
       id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-      name: PropTypes.string.isRequired,
+      nickname: PropTypes.string.isRequired,
       score: PropTypes.number.isRequired,
       avatar: PropTypes.string,
     })

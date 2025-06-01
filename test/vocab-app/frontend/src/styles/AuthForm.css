@@ -1,13 +1,23 @@
 /* AuthForm.css */
+.auth-page {
+  position: relative;
+  min-height: 100vh; /* 确保父容器占满视口高度 */
+}
+
 .auth-container {
-    max-width: 400px;
-    margin: 2rem auto;
-    padding: 2rem;
-    background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
-  }
-  
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 400px; /* 设置固定宽度 */
+  max-width: 400px; /* 保持最大宽度限制 */
+  margin: 2rem auto;
+  padding: 2rem;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+}
+
   .tabs {
     display: flex;
     margin-bottom: 1.5rem;
@@ -26,8 +36,8 @@
   }
   
   .tabs button.active {
-    color: #007bff;
-    border-bottom: 2px solid #007bff;
+    color: #296d08;
+    border-bottom: 2px solid #296d08;
     margin-bottom: -2px;
   }
   
@@ -43,7 +53,7 @@
   }
   
   .form-group input {
-    width: 100%;
+    width: 90%;
     padding: 0.8rem;
     border: 1px solid #ddd;
     border-radius: 5px;
@@ -53,7 +63,7 @@
   
   .form-group input:focus {
     outline: none;
-    border-color: #007bff;
+    border-color: #296d08;
     box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
   }
   
@@ -69,7 +79,7 @@
   button[type="submit"] {
     width: 100%;
     padding: 1rem;
-    background: #007bff;
+    background: #296d08;
     color: white;
     border: none;
     border-radius: 5px;
@@ -79,7 +89,7 @@
   }
   
   button[type="submit"]:hover {
-    background: #0056b3;
+    background: #296d08;
   }
   
   button[type="submit"]:disabled {

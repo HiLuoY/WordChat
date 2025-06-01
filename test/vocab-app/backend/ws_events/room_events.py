@@ -103,7 +103,10 @@ def register_room_events(socketio):
         # 获取用户排名
         rank = Leaderboard.get_user_rank(room_id, user_id)
         if rank is not None:
-            socketio.emit('user_ranking', {'rank': rank}, room=request.sid)
+            #socketio.emit('user_ranking', {'rank': rank}, room=request.sid)
+            socketio.emit('user_ranking', 
+                    {'user_id': user_id, 'rank': rank},
+                    room=str(room_id))
         else:
             logger.error(f"获取用户排名失败: room_id={room_id}, user_id={user_id}")
 

@@ -12,6 +12,7 @@ from models.room_model import Room
 from models.room_member_model import RoomMember
 from models.message_model import Message
 from models.Leaderboard_model import Leaderboard
+from models.user_model import User
 
 import logging
 
@@ -61,11 +62,11 @@ def register_rankinglist_events(socketio):
         
         if leaderboard:
             processed = [{
+                'id': item[3],
                 'nickname': item[0],
                 'score': item[1],
-                'updated_at': item[2].isoformat(),
-                'user_id': item[3]  # 确保返回用户ID
-            } for item in leaderboard]  # 需要修改SQL查询返回用户ID
+                'avatar': item[4]  # 从数据库获取的头像URL
+            } for item in leaderboard]
             emit('leaderboard_update', processed)
         logger.debug(f"初始排行榜查询结果: {leaderboard}")
 
@@ -92,10 +93,12 @@ def register_rankinglist_events(socketio):
             if Leaderboard.update_score(room_id, user_id, score_delta):
                 # 获取更新后的排行榜
                 leaderboard = Leaderboard.get_room_leaderboard(room_id)
+                # 在所有返回排行榜的地方使用这个结构
                 processed = [{
-                    'nickname': item[0],
-                    'score': item[1],
-                    'updated_at': item[2].isoformat()
+                    'id': item[3],           # 用户ID -> 对应前端的 id
+                    'nickname': item[0],         # 昵称 -> 对应前端的 name
+                    'score': item[1],        # 分数
+                    'avatar': item[4]        # 新增头像字段
                 } for item in leaderboard]
                 
                 
@@ -123,9 +126,10 @@ def register_rankinglist_events(socketio):
             leaderboard = Leaderboard.get_room_leaderboard(room_id, limit)
             if leaderboard:
                 processed = [{
+                    'id': item[3],
                     'nickname': item[0],
                     'score': item[1],
-                    'updated_at': item[2].isoformat()
+                    'avatar': item[4]  # 从数据库获取的头像URL
                 } for item in leaderboard]
                 emit('leaderboard_data', processed)
             else:
@@ -196,31 +200,4 @@ def register_rankinglist_events(socketio):
             logger.error(f"获取用户排名失败: 用户ID={user_id}, 房间ID={room_id}, 错误信息={str(e)}")
             emit('error', {'code': 500, 'message': '获取排名失败'})
 
-     # 新增函数：全量更新排行榜
-    @socketio.on('update_all_rankings')
-    def handle_update_all_rankings(data):
-        """全量更新所有用户排名"""
-        room_id = data.get('room_id')
-        try:
-            leaderboard = Leaderboard.get_room_leaderboard(room_id)
-            processed = [{
-                'nickname': item[0],
-                'score': item[1],
-                'updated_at': item[2].isoformat(),
-                'user_id': item[3],
-                'rank': index + 1
-            } for index, item in enumerate(leaderboard)]
-            
-            # 广播完整排行榜
-            emit('leaderboard_update', processed, room=f"ranking_{room_id}")
-            
-            # 更新每个用户的个人排名
-            for user in leaderboard:
-                user_id = user[3]
-                rank = Leaderboard.get_user_rank(room_id, user_id)
-                socketio.emit('user_ranking', {'rank': rank}, room=f"ranking_{room_id}")
-                
-            logger.info(f"全量排名更新完成 | room_id={room_id}")
-        except Exception as e:
-            logger.error(f"全量更新失败: {str(e)}")
-            emit('error', {'code': 500, 'message': '全量更新失败'})
+

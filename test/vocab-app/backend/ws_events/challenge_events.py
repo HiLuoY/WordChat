@@ -11,7 +11,7 @@ from models.challenge_attempts_model import ChallengeAttempt
 from redis_utils import get_room_state, set_room_state, del_room_state
 from models.room_model import Room
 from models.Leaderboard_model import Leaderboard
-
+from models.user_model import User
 
 # 创建日志器
 logger = logging.getLogger("your_logger_name")

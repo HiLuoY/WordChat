@@ -1,4 +1,29 @@
 /* 主容器设置 */
+body {
+  /* 设置背景颜色 */
+  background-color: #ffffff; /* 白色背景 */
+  background-size: cover; /* 使背景图片覆盖整个背景 */
+  background-position: center; /* 将背景图片定位到中心 */
+  background-repeat: no-repeat; /* 防止背景图片重复 */
+  position: relative; /* 设置相对定位 */
+}
+
+/* 添加一个覆盖层 */
+body::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('/5.jpg'); /* 替换为你的图片路径 */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0.7; /* 设置透明度 */
+  z-index: -1; /* 确保覆盖层在背景颜色之下 */
+}
+
 .chat-container {
   padding-top: 60px;  /* 导航栏高度 */
   height: calc(100vh - 60px);
@@ -20,10 +45,11 @@
 
 /* 聊天区域 */
 .chat-area {
+  position: relative; /* 设置相对定位，以便挑战显示区域可以相对于它定位 */
   width: 83.333%;
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: 100%; /* 确保高度足够 */
   min-height: 0;  /* 关键：允许收缩 */
   overflow: hidden;  /* 禁止滚动 */
 }
@@ -46,7 +72,7 @@
 
 /* 挑战显示区域 */
 .challenge-display {
-  position: absolute;
+  position: absolute; /* 绝对定位 */
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -137,8 +163,8 @@
 }
 
 .message-avatar {
-  width: 25px;
-  height: 25px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid #fff;
@@ -147,7 +173,7 @@
 }
 
 .sender-name {
-  font-size: 12px;
+  font-size: 14px; /* 增大发送者名字字体大小 */
   color: #666;
   text-align: center;
   white-space: nowrap; /* 保持不换行 */
@@ -163,9 +189,10 @@
 
 .message-content {
   background-color: #fff;
-  padding: 5px;
+  padding: 10px; /* 增大消息内边距 */
   border-radius: 8px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  font-size: 14px; /* 增大消息字体大小 */
 }
 
 .my-message .message-content {
@@ -216,7 +243,7 @@
 }
 
 .send-button {
-  background-color: #007bff;
+  background-color: #eec704;
   color: #fff;
   border: none;
   padding: 10px 15px;

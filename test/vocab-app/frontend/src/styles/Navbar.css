@@ -1,71 +1,79 @@
 .navbar {
-  position: fixed; /* 固定定位 */
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  z-index: 1000; /* 确保导航栏在最上层 */
+  z-index: 1000;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 20px;
-  background-color: #f8f9fa;
+  padding: 12px 24px; /* 增加内边距 */
+  background: linear-gradient(135deg, #fafafa 0%, #f4f4f4 100%); /* 渐变背景 */
   border-bottom: 1px solid #e1e1e1;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05); /* 柔和阴影 */
 }
 
 .navbar-left, .navbar-right {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 20px; /* 增加间距 */
 }
 
+.nav-icon {
+  font-size: 28px; /* 增大图标尺寸 */
+  color: #555;
+  transition: all 0.3s ease-out; /* 平滑过渡 */
+  position: relative;
+}
 
 .nav-icon.active {
-  color: #ffcc00; /* 高亮颜色 */
+  color: #ffcc00;
+  transform: scale(1.15); /* 激活状态轻微放大 */
 }
 
 .nav-button {
   border: none;
   background: none;
   cursor: pointer;
-  padding: 8px;
-  transition: color 0.3s;
+  padding: 10px;
+  border-radius: 50%; /* 圆形按钮 */
+  transition: background 0.3s;
 }
 
-.icon-button {
-  position: relative;
+.nav-button:hover {
+  background: rgba(0,123,255,0.1); /* 悬停背景色 */
 }
 
 .icon-button:hover::after {
   content: attr(title);
   position: absolute;
-  bottom: -30px;
+  bottom: -36px; /* 下移提示框 */
   left: 50%;
   transform: translateX(-50%);
-  background-color: #333;
+  background: linear-gradient(to bottom, #444, #333); /* 渐变背景 */
   color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.nav-icon {
-  font-size: 20px;
-  color: #555;
-}
-
-.nav-icon:hover {
-  color: #007bff;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.2); /* 阴影增强 */
+  z-index: 1100;
 }
 
 .user-avatar {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px; /* 增大尺寸 */
   border-radius: 50%;
   object-fit: cover;
+  border: 2px solid #fff; /* 白色边框 */
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  transition: transform 0.3s;
+}
+
+.user-avatar:hover {
+  transform: scale(1.08); /* 悬停放大 */
 }
 
 .default-avatar {
-  font-size: 40px;
+  font-size: 44px; /* 增大尺寸 */
   color: #ccc;
 }

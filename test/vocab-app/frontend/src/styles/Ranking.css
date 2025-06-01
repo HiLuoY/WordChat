@@ -1,17 +1,20 @@
-/* 侧边栏整体样式 */
 .ranking-sidebar {
-  width: 280px;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%);
-  padding: 20px;
+  /* 在原渐变颜色值中增加透明度（示例设为0.8） */
+  background: linear-gradient(135deg, rgba(164, 203, 220, 0.8) 0.8%, rgba(255, 255, 255, 0.9) 100%);
+  /* 其他样式保持不变 */
+  width: 250px;
+  padding: 35px;
   border-radius: 0 16px 16px 0;
   box-shadow: 2px 0 15px rgba(0,0,0,0.08);
   overflow-y: auto;
   height: 100%;
 }
 
+
+
 /* 当前用户排名 - 尊贵视觉设计 */
 .current-user-rank {
-  background: linear-gradient(135deg, rgba(46, 204, 113, 0.15) 0%, rgba(52, 152, 219, 0.2) 100%);
+  /*background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 20%, rgba(52, 152, 219, 0.2) 100%);*/
   border-radius: 16px;
   padding: 16px 20px;
   margin-bottom: 25px;
@@ -19,14 +22,15 @@
   align-items: center;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 6px 20px rgba(46, 204, 113, 0.25);
-  border: 1px solid rgba(46, 204, 113, 0.4);
+  /*box-shadow: 0 6px 20px rgba(235, 255, 10, 0.25);
+  */
+  border: 0px solid rgba(253, 253, 0, 0.4);
   animation: pulse-glow 2.5s infinite;
 }
 
 /* 呼吸光效动画 */
 @keyframes pulse-glow {
-  0% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.4); }
+  0% { box-shadow: 0 0 0 0 rgba(251, 255, 3, 0.4); }
   70% { box-shadow: 0 0 0 12px rgba(46, 204, 113, 0); }
   100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); }
 }
@@ -43,10 +47,14 @@
 .current-user-rank > span:first-of-type {
   font-size: 18px;
   font-weight: 600;
-  color: #2c3e50;
+  color: #2a272f;
   letter-spacing: 0.5px;
 }
-
+/* 昵称 */
+.ranking-item .user-nickname {
+  text-decoration: underline;
+  font-weight: bold; /* 或者使用 font-weight: 700; */
+}
 /* 排名数字特效 */
 .rank-number {
   font-weight: 800;
@@ -61,7 +69,7 @@
 }
 
 /* 分数标签样式 */
-.user-score {
+/*.user-score {
   background: linear-gradient(to right, #3498db, #2980b9);
   color: white;
   border-radius: 20px;
@@ -74,7 +82,7 @@
   align-items: center;
   position: relative;
   z-index: 2;
-}
+}*/
 
 /* 装饰性光效 */
 .current-user-rank::before {
@@ -113,7 +121,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 15px;
+  padding: 6px 8px;
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 3px 10px rgba(0,0,0,0.08);
@@ -131,7 +139,7 @@
 /* 前三名特殊样式 */
 .ranking-item:nth-child(1) {
   border-left: 4px solid #ffd700;
-  background: linear-gradient(90deg, rgba(255,215,0,0.08) 0%, white 100%);
+  /*background: linear-gradient(90deg, rgba(255,215,0,0.08) 0%, white 100%);*/
 }
 .ranking-item:nth-child(2) {
   border-left: 4px solid #c0c0c0;
@@ -175,8 +183,8 @@
 .ranking-item .user-name {
   flex: 1;
   margin: 0 15px;
-  font-weight: 500;
-  color: #34495e;
+  font-weight: 600;
+  color: #000000;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -190,7 +198,7 @@
   position: relative;
 }
 .ranking-item .score::after {
-  content: '分';
+  content: '';
   font-size: 12px;
   margin-left: 3px;
   opacity: 0.7;

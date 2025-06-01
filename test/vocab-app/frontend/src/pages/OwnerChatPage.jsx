@@ -80,6 +80,10 @@ const OwnerChatPage = () => {
       setRankings(data);
     });
 
+    /*socketInstance.on('user_ranking', (data) => {
+      console.log('收到用户排名:', data.rank);
+      setUserRank(data.rank);
+    });*/
 
     socketInstance.on('user_ranking', (data) => {
       if (data.user_id === userData.user_id) {

@@ -9,18 +9,16 @@
 .loginBody {
     min-height: 100vh;
     display: flex;
-    justify-content: center;
-    align-items: center;
+    justify-content: center; /* 水平居中 */
+    align-items: center; /* 垂直居中 */
     background: linear-gradient(
         rgba(255, 255, 255, 0.2),
         rgba(255, 255, 255, 0.2)
       ),
-      /* 请替换为你自己的图片路径 */
-      url('../assets/loginback.jpg') 
-      center/cover fixed;
+      url('../assets/loginback.jpg') center/cover fixed;
     position: relative;
     z-index: 0;
-}
+  }
 
 /* 可选：添加半透明遮罩层 */
 

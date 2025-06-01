@@ -77,7 +77,13 @@ const GuestChatPage = () => {
 
     socketInstance.on('leaderboard_update', (data) => {
       console.log('收到排行榜更新:', data);
-      setRankings(data);
+      const normalized = data.map(item => ({
+        id: item.user_id,
+        nickname: item.nickname || item.name, // 统一为name
+        score: item.score,
+        avatar: item.avatar
+      }));
+      setRankings(normalized);
     });
 
   // 监听个人排名更新（双保险）
