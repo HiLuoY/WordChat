@@ -42,9 +42,8 @@ def register_room_events(socketio):
                 room_list.append(room_info)
 
             emit('all_rooms_data', {
-                'rooms': room_list,
-                #'timestamp': datetime.utcnow().isoformat()  # 添加时间戳用于客户端同步
-            })
+                'rooms': room_list
+            },broadcast=True)
             
         except Exception as e:
             logger.error(f"获取所有房间信息失败: {str(e)}", exc_info=True)
@@ -113,6 +112,7 @@ def register_room_events(socketio):
 
     @socketio.on('leave_room')
     def handle_leave_room(data):
+        logger.info(f"尝试退出房间 | 用户session: {session} | 请求数据: {data}")
         if 'user_id' not in session:
             emit('system_message', {'message': '请先登录'})
             return
@@ -223,7 +223,13 @@ def register_room_events(socketio):
                 owner_id=data['user_id'],
                 password=data.get('password')
             )
-            
+            # 获取更新后的完整房间列表
+            updated_rooms = Room.get_all_rooms()
+            formatted_rooms = [{
+            'id': r['id'],
+            'name': r['room_name'],
+            'has_password': r['password'] is not None
+            } for r in updated_rooms]
             # 2. 广播新房间给所有客户端
             new_room = {
                 'id': room_id,
@@ -231,7 +237,12 @@ def register_room_events(socketio):
                 'owner_id': data['user_id'],
                 'has_password': bool(data.get('password'))
             }
-            emit('room_created', new_room, broadcast=True)  # 广播给所有人
+            emit('room_created', new_room, room=request.sid) 
+            # 2. 向所有人发送完整房间列表
+            emit('all_rooms_data', {
+                'rooms': formatted_rooms
+            }, broadcast=True)
+           
             
         except ValueError as e:
             emit('error', {'message': str(e)})  # 只返回给当前用户
