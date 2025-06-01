@@ -6,7 +6,7 @@
   flex-direction: column;
   height: 100vh;
   width: 100vw;
-  overflow: auto; /* 禁止页面滚动 */
+  overflow: hidden; /* 禁止页面滚动 */
   /*background-color: #f5f5f5;*/
   font-family: 'Arial', sans-serif;
 }
@@ -154,7 +154,7 @@
   flex: 1;
   display: flex;
   position: relative;
-  overflow: a;
+  overflow: hidden;
 }
 
 .scroll-button {
