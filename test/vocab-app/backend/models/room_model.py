@@ -140,15 +140,16 @@ class Room:
         if Room.get_room_by_id(room_id) is None:
             raise ValueError(f"Room with id={room_id} does not exist")
         
-        sql = """
-        DELETE FROM Rooms 
-        WHERE id = %s
-        """
-        params = (room_id,)
-        
         try:
-            success = delete(sql, params)
-            logger.info(f"Deleted room id={room_id}")
+            # 按依赖顺序删除
+            delete("DELETE FROM ChallengeAttempts WHERE challenge_id IN (SELECT id FROM WordChallenges WHERE room_id = %s)", (room_id,))
+            delete("DELETE FROM WordChallenges WHERE room_id = %s", (room_id,))
+            delete("DELETE FROM Leaderboard WHERE room_id = %s", (room_id,))
+            delete("DELETE FROM Messages WHERE room_id = %s", (room_id,))
+            delete("DELETE FROM RoomMembers WHERE room_id = %s", (room_id,))
+            # 2. 再删除 rooms 记录
+            delete_room_sql = "DELETE FROM Rooms WHERE id = %s"
+            success = delete(delete_room_sql, (room_id,))
             return success
         except Exception as e:
             logger.error(f"Failed to delete room id={room_id}: {str(e)}", exc_info=True)

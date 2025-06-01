@@ -186,6 +186,7 @@ def check_room_owner(room_id):
         description: 服务器内部错误
     """
     # 检查用户是否已登录
+    logger.info(f"尝试判断是否为房主房间 | 用户session: {session} | 请求数据: {room_id}")
     if 'user_id' not in session:
         logger.warning("Unauthorized access attempt to check room ownership")
         return jsonify({"error": "Unauthorized"}), 401

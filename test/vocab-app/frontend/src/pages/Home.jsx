@@ -77,17 +77,19 @@ const Home = () => {
   };
   // 新增处理：房间创建成功
   const handleRoomCreated = (newRoom) => {
-    setRooms(prev => [...prev, newRoom]); // 更新房间列表
-    setShowCreateRoomModal(false); // 关闭创建弹窗
-    
-    // 自动跳转到房主界面
-    const roomInfo = {
-      room_id: newRoom.id,
-      room_name: newRoom.name,
-      is_owner: true
-    };
-    localStorage.setItem('currentRoom', JSON.stringify(roomInfo));
-    navigate('/chat/owner');
+    //setRooms(prev => [...prev, newRoom]); // 更新房间列表
+    if( userData.user_id === newRoom.owner_id){
+      setShowCreateRoomModal(false); // 关闭创建弹窗
+      
+      // 自动跳转到房主界面
+      const roomInfo = {
+        room_id: newRoom.id,
+        room_name: newRoom.name,
+        is_owner: true
+      };
+      localStorage.setItem('currentRoom', JSON.stringify(roomInfo));
+      navigate('/chat/owner');
+    }
   };
 
   const handleSocketError = (error) => {
