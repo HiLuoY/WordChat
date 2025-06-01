@@ -183,8 +183,11 @@ const OwnerChatPage = () => {
         user_id: userData.user_id
       });
     }
-    localStorage.removeItem('currentRoom');
-    navigate('/home');
+    showSystemPopup('你已解散房间');
+    setTimeout(() => {
+      localStorage.removeItem('currentRoom');
+      navigate('/home');
+      }, 2000); // 添加延迟确保消息发送
   };
 
   // 发起挑战

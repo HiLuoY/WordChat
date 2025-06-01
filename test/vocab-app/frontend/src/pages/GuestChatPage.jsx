@@ -127,7 +127,14 @@ const GuestChatPage = () => {
         correct: data.correct,
       }]);
     });
-
+    // 在useEffect的socket事件监听部分添加：
+    socketInstance.on('room_dismissed', () => {
+      showSystemPopup('房主已解散房间');
+      setTimeout(() => {
+        localStorage.removeItem('currentRoom');
+        navigate('/home');
+      }, 2000); // 2秒后跳转
+    });
 
     socketInstance.on('system_message', (data) => {
       showSystemPopup(data.message);
@@ -182,8 +189,10 @@ const GuestChatPage = () => {
         user_id: userData.user_id
       });
     }
+    setTimeout(() => {
     localStorage.removeItem('currentRoom');
     navigate('/home');
+  }, 500); // 添加延迟确保消息发送
   };
 
   return (
