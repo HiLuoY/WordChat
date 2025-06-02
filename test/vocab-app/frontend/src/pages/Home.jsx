@@ -36,34 +36,6 @@ const Home = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const roomsPerPage = 36; // 6行×6列
 
-<<<<<<< HEAD
-  // 初始化编辑表单数据
-  useEffect(() => {
-    if (userData && showEditProfileModal) {
-      setEditFormData({
-        email: userData.email || '',
-        newPassword: '',
-        confirmPassword: ''
-      });
-    }
-  }, [showEditProfileModal, userData]);
-
-  // 添加滚动函数
-  const scrollRooms = (direction) => {
-    const roomsPerPage = 36; // 6行×6列
-    setScrollPosition(prev => {
-      if (direction === 'left') {
-        return Math.max(0, prev - 1);
-      } else {
-        return Math.min(
-          Math.ceil(rooms.length / roomsPerPage) - 1,
-          prev + 1
-        );
-      }
-    });
-  };
-
-=======
   // 计算当前页的房间
   const getCurrentPageRooms = () => {
     const start = currentPage * roomsPerPage;
@@ -81,7 +53,6 @@ const Home = () => {
     }
   };
 
->>>>>>> 2641ad691bc36b1a8eb8b6e06ac95c13b4e33c1d
   // 处理编辑表单变化
   const handleEditFormChange = (e) => {
     const { name, value } = e.target;
@@ -131,10 +102,6 @@ const Home = () => {
     }
   };
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 2641ad691bc36b1a8eb8b6e06ac95c13b4e33c1d
   // 初始化WebSocket连接
   useEffect(() => {
     if (userData && !socket) {
@@ -276,7 +243,7 @@ const Home = () => {
     <div className="page-container">
       {/* 导航栏 */}
       <nav className="app-navbar">
-        <div className="nav-brand">词汇竞技场</div>
+        <div className="nav-brand">Vocabulary Arena —— 词汇竞技场</div>
         <div className="nav-links">
           <Link to="/home" className="nav-link active">首页</Link>
           <div className="user-menu-container">
