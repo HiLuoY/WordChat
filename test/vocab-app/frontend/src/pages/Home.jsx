@@ -33,8 +33,10 @@ const Home = () => {
   });
   
   // 在组件顶部添加状态
-  const [scrollPosition, setScrollPosition] = useState(0);
+  const [currentPage, setCurrentPage] = useState(0);
+  const roomsPerPage = 36; // 6行×6列
 
+<<<<<<< HEAD
   // 初始化编辑表单数据
   useEffect(() => {
     if (userData && showEditProfileModal) {
@@ -61,6 +63,25 @@ const Home = () => {
     });
   };
 
+=======
+  // 计算当前页的房间
+  const getCurrentPageRooms = () => {
+    const start = currentPage * roomsPerPage;
+    const end = start + roomsPerPage;
+    return rooms.slice(start, end);
+  };
+
+  // 计算总页数
+  const totalPages = Math.ceil(rooms.length / roomsPerPage);
+
+  // 处理翻页
+  const handlePageChange = (newPage) => {
+    if (newPage >= 0 && newPage < totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
+
+>>>>>>> 2641ad691bc36b1a8eb8b6e06ac95c13b4e33c1d
   // 处理编辑表单变化
   const handleEditFormChange = (e) => {
     const { name, value } = e.target;
@@ -110,6 +131,10 @@ const Home = () => {
     }
   };
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 2641ad691bc36b1a8eb8b6e06ac95c13b4e33c1d
   // 初始化WebSocket连接
   useEffect(() => {
     if (userData && !socket) {
@@ -251,7 +276,7 @@ const Home = () => {
     <div className="page-container">
       {/* 导航栏 */}
       <nav className="app-navbar">
-        <div className="nav-brand">单词对战平台</div>
+        <div className="nav-brand">词汇竞技场</div>
         <div className="nav-links">
           <Link to="/home" className="nav-link active">首页</Link>
           <div className="user-menu-container">
@@ -302,47 +327,38 @@ const Home = () => {
           {/* 房间列表区块 */}
           <div className="rooms-list-container">
             <h2>现有房间列表</h2>
-            <div className="rooms-scroll-container">
-              <button 
-                className="scroll-button left"
-                onClick={() => scrollRooms('left')}
-                disabled={scrollPosition === 0}
-              >
-                &lt;
-              </button>
-              <div className="rooms-viewport">
+            <div className="rooms-grid">
+              {getCurrentPageRooms().map(room => (
                 <div 
-                  className="rooms-grid"
-                  style={{ transform: `translateX(-${scrollPosition * 100}%)` }}
+                  key={room.id} 
+                  className="room-card"
+                  onClick={() => handleSelectRoom(room)}
                 >
-                  {rooms.length > 0 ? (
-                    rooms.map(room => (
-                      <div 
-                        key={room.id} 
-                        className="room-card"
-                        onClick={() => handleSelectRoom(room)}
-                      >
-                        {/* 房间内容保持不变 */}
-                        <div className="room-name">{room.name}</div>
-                        <div className="room-id">ID: {room.id}</div>
-                        {room.has_password && (
-                          <div className="room-lock-icon">🔒</div>
-                        )}
-                      </div>
-                    ))
-                  ) : (
-                    <div className="no-rooms-message">
-                      {socket ? '暂无可用房间，请创建新房间' : '正在连接服务器...'}
-                    </div>
+                  <div className="room-name">{room.name}</div>
+                  <div className="room-id">ID: {room.id}</div>
+                  {room.has_password && (
+                    <div className="room-lock-icon">🔒</div>
                   )}
                 </div>
-              </div>
+              ))}
+            </div>
+            <div className="pagination-controls">
               <button 
-                className="scroll-button right"
-                onClick={() => scrollRooms('right')}
-                disabled={scrollPosition >= Math.ceil(rooms.length / 36) - 1}
+                className="pagination-button"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 0}
               >
-                &gt;
+                上一页
+              </button>
+              <span className="page-info">
+                第 {currentPage + 1} 页 / 共 {totalPages} 页
+              </span>
+              <button 
+                className="pagination-button"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage >= totalPages - 1}
+              >
+                下一页
               </button>
             </div>
           </div>
