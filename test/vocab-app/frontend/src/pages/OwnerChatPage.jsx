@@ -214,6 +214,17 @@ const OwnerChatPage = () => {
       });
     }
   };
+  
+// 更新后的踢人处理函数
+const handleKickUser = (userId) => {
+  if (!socket || !socket.connected || !roomInfo) return;
+
+  socket.emit('kick_user', {
+    room_id: roomInfo.room_id,
+    target_user_id: userId,
+    kicker_id: userData.user_id
+  });
+};
 
   return (
     <div className="chat-container">
@@ -228,17 +239,13 @@ const OwnerChatPage = () => {
 
       <Navbar
         onLeaveRoom={handleLeaveRoom}
-        onKickUser={(userId) => {
-          if (socket && socket.connected) {
-            socket.emit('kick_user', {
-              room_id: roomInfo.room_id,
-              target_user_id: userId
-            });
-          }
-        }}
+        onShowRanking={() => setShowRanking(!showRanking)}
+        onKickUser={handleKickUser}
         onEditProfile={() => navigate('/profile/edit')}
         showRoomControls={true}
         showKickButton={true}
+        rankings={rankings}
+        currentUserId={userData?.user_id}
       />
       <div className="main-content-container">
         <RankingSidebar 

@@ -5,6 +5,7 @@ import GuestChatPage from "./pages/GuestChatPage";
 //import Learn from "./pages/Learn";
 import Login from './pages/Login';
 import ChatPage from "./pages/OwnerChatPage";
+
 // import MyWords from "./pages/MyWords";
 // import Chat from "./pages/Chat";
 // import Profile from "./pages/Profile";
@@ -17,6 +18,7 @@ const App = () => {
         <Route path="/chat/owner" element={<ChatPage />} />
         <Route path="/home" element={<Home />} />
         <Route path="/chat/guest" element={<GuestChatPage />} />
+       
         {/* <Route path="/books" element={<Books />} />
         <Route path="/my-words" element={<MyWords />} />
         <Route path="/chat" element={<Chat />} />

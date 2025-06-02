@@ -4,7 +4,6 @@ import io from 'socket.io-client';
 import '../styles/Home.css';
 import api from './api';
 
-
 const Home = () => {
   const navigate = useNavigate();
   const [socket, setSocket] = useState(null);
@@ -24,8 +23,28 @@ const Home = () => {
   const [showCreateRoomModal, setShowCreateRoomModal] = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
   const [newRoomPassword, setNewRoomPassword] = useState('');
+  
+  // 新增状态：个人信息修改弹窗
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    email: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  
   // 在组件顶部添加状态
   const [scrollPosition, setScrollPosition] = useState(0);
+
+  // 初始化编辑表单数据
+  useEffect(() => {
+    if (userData && showEditProfileModal) {
+      setEditFormData({
+        email: userData.email || '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+    }
+  }, [showEditProfileModal, userData]);
 
   // 添加滚动函数
   const scrollRooms = (direction) => {
@@ -41,6 +60,56 @@ const Home = () => {
       }
     });
   };
+
+  // 处理编辑表单变化
+  const handleEditFormChange = (e) => {
+    const { name, value } = e.target;
+    setEditFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // 提交个人信息修改
+  const handleProfileUpdate = async () => {
+    try {
+      // 验证密码是否匹配
+      if (editFormData.newPassword !== editFormData.confirmPassword) {
+        setError('两次输入的密码不一致');
+        return;
+      }
+
+      const updateData = {};
+      if (editFormData.email !== userData.email) {
+        updateData.email = editFormData.email;
+      }
+      if (editFormData.newPassword) {
+        updateData.password = editFormData.newPassword;
+      }
+
+      // 如果没有修改内容
+      if (Object.keys(updateData).length === 0) {
+        setError('没有修改任何信息');
+        return;
+      }
+
+      const response = await api.put('/api/user/update', updateData);
+      
+      // 更新本地存储的用户信息
+      const updatedUser = {
+        ...userData,
+        email: editFormData.email || userData.email
+      };
+      localStorage.setItem('userInfo', JSON.stringify(updatedUser));
+      setUserData(updatedUser);
+      
+      setError('');
+      setShowEditProfileModal(false);
+    } catch (err) {
+      setError(err.response?.data?.message || '更新个人信息失败');
+    }
+  };
+
   // 初始化WebSocket连接
   useEffect(() => {
     if (userData && !socket) {
@@ -197,6 +266,12 @@ const Home = () => {
                 <div className="menu-item" onClick={() => navigate('/profile')}>
                   个人信息
                 </div>
+                <div className="menu-item" onClick={() => {
+                  setShowEditProfileModal(true);
+                  setIsDropdownOpen(false);
+                }}>
+                  修改信息
+                </div>
                 <div className="menu-item" onClick={handleLogout}>
                   退出登录
                 </div>
@@ -272,6 +347,67 @@ const Home = () => {
             </div>
           </div>
         </div>
+
+      {/* 个人信息修改模态框 */}
+      {showEditProfileModal && (
+        <div className="modal-overlay">
+          <div className="edit-profile-modal">
+            <h3>修改个人信息</h3>
+            {error && <div className="error-message">{error}</div>}
+            
+            <div className="form-group">
+              <label>电子邮箱</label>
+              <input
+                type="email"
+                name="email"
+                value={editFormData.email}
+                onChange={handleEditFormChange}
+                placeholder="输入新邮箱"
+              />
+            </div>
+            
+            <div className="form-group">
+              <label>新密码</label>
+              <input
+                type="password"
+                name="newPassword"
+                value={editFormData.newPassword}
+                onChange={handleEditFormChange}
+                placeholder="输入新密码（留空则不修改）"
+              />
+            </div>
+            
+            <div className="form-group">
+              <label>确认密码</label>
+              <input
+                type="password"
+                name="confirmPassword"
+                value={editFormData.confirmPassword}
+                onChange={handleEditFormChange}
+                placeholder="再次输入新密码"
+              />
+            </div>
+            
+            <div className="modal-buttons">
+              <button 
+                className="cancel-button"
+                onClick={() => {
+                  setShowEditProfileModal(false);
+                  setError('');
+                }}
+              >
+                取消
+              </button>
+              <button 
+                className="confirm-button"
+                onClick={handleProfileUpdate}
+              >
+                保存修改
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
         {/* 密码输入模态框（加入房间） */}
         {showPasswordModal && (

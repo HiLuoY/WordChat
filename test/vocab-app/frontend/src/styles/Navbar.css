@@ -77,3 +77,99 @@
   font-size: 44px; /* 增大尺寸 */
   color: #ccc;
 }
+
+/* 踢人模态框样式 */
+.kick-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.kick-modal {
+  background: white;
+  border-radius: 8px;
+  width: 350px;
+  max-width: 90%;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: #666;
+}
+
+.user-list {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.user-item {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.user-item:hover {
+  background: #f5f5f5;
+}
+
+.user-item.selected {
+  background: #e6f7ff;
+}
+
+.user-item img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 10px;
+  object-fit: cover;
+}
+
+.user-item .score {
+  margin-left: auto;
+  color: #ff9900;
+  font-weight: bold;
+}
+
+.modal-actions {
+  padding: 15px;
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid #eee;
+}
+
+.confirm-button {
+  background-color: #ff4d4f;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.confirm-button:disabled {
+  background-color: #d9d9d9;
+  cursor: not-allowed;
+}
