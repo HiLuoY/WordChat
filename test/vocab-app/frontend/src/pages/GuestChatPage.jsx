@@ -113,7 +113,7 @@ const GuestChatPage = () => {
         challengeId: data.challenge_id,
         meaning: data.word_meaning,
       });
-      setCountdown(30);
+      setCountdown(15);
       showSystemPopup('新单词挑战已开始！');
     });
 
@@ -152,7 +152,15 @@ const GuestChatPage = () => {
     socketInstance.on('system_message', (data) => {
       showSystemPopup(data.message);
     });
-
+    // 在 useEffect 的 socket 事件监听部分添加：
+    socketInstance.on('kicked_from_room', (data) => {
+      if (data.user_id === userData.user_id) {
+        setTimeout(() => {
+          localStorage.removeItem('currentRoom');
+          navigate('/home');
+        }, 3000); // 3秒后跳转
+      }
+    });
     // 倒计时
     const timer = setInterval(() => {
       setCountdown(prev => prev > 0 ? prev - 1 : 0);
@@ -221,7 +229,6 @@ const GuestChatPage = () => {
 
       <Navbar
         onLeaveRoom={handleLeaveRoom}
-        onEditProfile={() => navigate('/profile/edit')}
         showKickButton={false}
       />
       <div className="main-content-container">

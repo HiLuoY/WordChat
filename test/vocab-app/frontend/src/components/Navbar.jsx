@@ -119,7 +119,6 @@ const Navbar = ({
       </div>
       
       <div className="navbar-right">
-        <button onClick={onEditProfile} className="avatar-button">
           {userAvatar ? (
             <img 
               src={userAvatar} 
@@ -137,7 +136,6 @@ const Navbar = ({
               className="user-avatar"
             />
           )}
-        </button>
       </div>
     </nav>
   );

@@ -27,43 +27,17 @@ const Home = () => {
   // 新增状态：个人信息修改弹窗
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [editFormData, setEditFormData] = useState({
-    email: '',
+    email: userData?.email || '',
+    nickname: userData?.nickname || '',
     newPassword: '',
     confirmPassword: ''
+    
   });
   
   // 在组件顶部添加状态
   const [currentPage, setCurrentPage] = useState(0);
   const roomsPerPage = 36; // 6行×6列
 
-<<<<<<< HEAD
-  // 初始化编辑表单数据
-  useEffect(() => {
-    if (userData && showEditProfileModal) {
-      setEditFormData({
-        email: userData.email || '',
-        newPassword: '',
-        confirmPassword: ''
-      });
-    }
-  }, [showEditProfileModal, userData]);
-
-  // 添加滚动函数
-  const scrollRooms = (direction) => {
-    const roomsPerPage = 36; // 6行×6列
-    setScrollPosition(prev => {
-      if (direction === 'left') {
-        return Math.max(0, prev - 1);
-      } else {
-        return Math.min(
-          Math.ceil(rooms.length / roomsPerPage) - 1,
-          prev + 1
-        );
-      }
-    });
-  };
-
-=======
   // 计算当前页的房间
   const getCurrentPageRooms = () => {
     const start = currentPage * roomsPerPage;
@@ -81,7 +55,6 @@ const Home = () => {
     }
   };
 
->>>>>>> 2641ad691bc36b1a8eb8b6e06ac95c13b4e33c1d
   // 处理编辑表单变化
   const handleEditFormChange = (e) => {
     const { name, value } = e.target;
@@ -107,6 +80,9 @@ const Home = () => {
       if (editFormData.newPassword) {
         updateData.password = editFormData.newPassword;
       }
+      if (editFormData.nickname !== userData.nickname) {
+      updateData.nickname = editFormData.nickname;
+      }
 
       // 如果没有修改内容
       if (Object.keys(updateData).length === 0) {
@@ -114,12 +90,13 @@ const Home = () => {
         return;
       }
 
-      const response = await api.put('/api/user/update', updateData);
+      const response = await api.put('/api/auth/update', updateData);
       
       // 更新本地存储的用户信息
       const updatedUser = {
         ...userData,
-        email: editFormData.email || userData.email
+        email: editFormData.email || userData.email,
+        nickname: editFormData.nickname || userData.nickname,
       };
       localStorage.setItem('userInfo', JSON.stringify(updatedUser));
       setUserData(updatedUser);
@@ -131,10 +108,6 @@ const Home = () => {
     }
   };
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 2641ad691bc36b1a8eb8b6e06ac95c13b4e33c1d
   // 初始化WebSocket连接
   useEffect(() => {
     if (userData && !socket) {
@@ -288,9 +261,6 @@ const Home = () => {
             />
             {isDropdownOpen && (
               <div className="dropdown-menu">
-                <div className="menu-item" onClick={() => navigate('/profile')}>
-                  个人信息
-                </div>
                 <div className="menu-item" onClick={() => {
                   setShowEditProfileModal(true);
                   setIsDropdownOpen(false);
@@ -370,7 +340,16 @@ const Home = () => {
           <div className="edit-profile-modal">
             <h3>修改个人信息</h3>
             {error && <div className="error-message">{error}</div>}
-            
+            <div className="form-group">
+              <label>昵称</label>
+              <input
+                type="text"
+                name="nickname"
+                value={editFormData.nickname}
+                onChange={handleEditFormChange}
+                placeholder="输入新昵称"
+              />
+            </div>
             <div className="form-group">
               <label>电子邮箱</label>
               <input

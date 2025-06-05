@@ -1,10 +1,10 @@
 import os
 from models.word_model import Word
 
-def import_words_from_csv(csv_file):
-    """从CSV文件导入单词"""
+def import_words_from_csv(csv_file, limit=100):
+    """从CSV文件导入单词，限制导入数量"""
     try:
-        success_count = Word.import_from_csv(csv_file)
+        success_count = Word.import_from_csv(csv_file, limit=limit)
         print(f"成功导入 {success_count} 个单词")
     except Exception as e:
         print(f"导入失败: {str(e)}")
@@ -21,7 +21,7 @@ if __name__ == "__main__":
         
         if os.path.exists(csv_path):
             print(f"开始导入单词... ({csv_file})")
-            import_words_from_csv(csv_path)
+            import_words_from_csv(csv_path, limit=100)
             print(f"导入完成！ ({csv_file})")
         else:
             print(f"错误：找不到文件 {csv_path}")

@@ -198,8 +198,8 @@ def register_room_events(socketio):
         # 通知被踢用户
         emit('kicked_from_room', {
             'room_id': room_id,
-            'reason': '你已被房主移出房间'
-        }, room=target_user_id)  # 假设用户的socket ID与user_id相关联
+            'user_id': target_user_id
+        }, room=str(room_id))  # 假设用户的socket ID与user_id相关联
 
         # 通知房间其他成员
         emit('system_message', {
@@ -212,6 +212,18 @@ def register_room_events(socketio):
         leaderboard = Leaderboard.get_room_leaderboard(room_id, limit=10)
         if leaderboard is not None:
             socketio.emit('leaderboard_update', leaderboard, room=str(room_id))
+        # 获取房间内所有用户的ID（需要实现获取房间用户列表的方法）
+        room_users = Leaderboard.get_room_users(room_id)  # 应返回用户ID列表
+        if room_users is None:
+            logger.error(f"获取房间用户列表失败: room_id={room_id}")
+        else:
+            # 遍历房间内所有用户
+            for user_id in room_users:
+                # 获取每个用户的排名
+                rank = Leaderboard.get_user_rank(room_id, user_id)
+                socketio.emit('user_ranking', 
+                    {'user_id': user_id, 'rank': rank},
+                room=str(room_id))
 
         # 通知所有客户端更新房间列表
         handle_get_all_rooms()

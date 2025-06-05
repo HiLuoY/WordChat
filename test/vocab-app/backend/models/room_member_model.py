@@ -38,23 +38,41 @@ class RoomMember:
     @staticmethod
     def remove_member(room_id: int, user_id: int) -> bool:
         """
-        从房间移除用户
+        从房间移除用户，并同步清理排行榜记录
         :param room_id: 房间ID
         :param user_id: 用户ID
         :return: 是否删除成功
         """
-        sql = """
+        # 1. 删除房间成员记录
+        member_sql = """
         DELETE FROM RoomMembers 
         WHERE room_id = %s AND user_id = %s
         """
-        params = (room_id, user_id)
-        
+        member_params = (room_id, user_id)
+
+        # 2. 删除排行榜记录
+        leaderboard_sql = """
+        DELETE FROM Leaderboard
+        WHERE room_id = %s AND user_id = %s
+        """
+        leaderboard_params = (room_id, user_id)
+
         try:
-            success = delete(sql, params)
-            logger.info(f"Removed member: room_id={room_id}, user_id={user_id}")
-            return success
+            # 删除成员记录
+            member_success = delete(member_sql, member_params)
+                
+            # 删除排行榜记录（即使成员不存在也尝试清理）
+            leaderboard_success = delete(leaderboard_sql, leaderboard_params)
+                
+            if member_success and leaderboard_success:
+                logger.info(
+                    f"Removed member and leaderboard: room_id={room_id}, user_id={user_id}"
+                )
+                return True
+            return False
+
         except Exception as e:
-            logger.error(f"Failed to remove member: {str(e)}", exc_info=True)
+            logger.error(f"Failed to remove member and leaderboard: {str(e)}", exc_info=True)
             raise
 
     @staticmethod

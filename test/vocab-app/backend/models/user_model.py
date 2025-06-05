@@ -87,14 +87,14 @@ class User:
         """
         更新用户信息
         :param user_id: 要更新的用户ID
-        :param updates: 包含更新字段的字典(可包含: nickname, avatar, password_hash)
+        :param updates: 包含更新字段的字典(可包含: nickname, avatar, password_hash,email)
         :return: 是否更新成功
         :raises: ValueError 如果用户不存在或更新字段无效
         """
         if not updates:
             raise ValueError("No update fields provided")
         
-        valid_fields = {'nickname', 'avatar', 'password_hash'}
+        valid_fields = {'nickname', 'avatar', 'password_hash','email'}
         invalid_fields = set(updates.keys()) - valid_fields
         if invalid_fields:
             raise ValueError(f"Invalid update fields: {invalid_fields}")

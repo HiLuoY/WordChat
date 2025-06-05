@@ -49,12 +49,12 @@ def create_challenge():
             return jsonify({'code': 400, 'message': 'num_words 必须为正整数'}), 400
         #---------------------------当注册登录，创建/加入房间弄好后记得恢复----------------------------
         # ===== 3. 会话验证 =====
-        # user_id = session.get('user_id')
-        # if not user_id:
-        #     logger.error("用户未登录，session: %s", session)
-        #     return jsonify({'code': 401, 'message': '请先登录'}), 401
+        user_id = session.get('user_id')
+        if not user_id:
+             logger.error("用户未登录，session: %s", session)
+             return jsonify({'code': 401, 'message': '请先登录'}), 401
         #记得删除
-        user_id = int(data['user_id'])
+        #user_id = int(data['user_id'])
 
         # ===== 4. 权限验证 =====
         from models.room_model import Room
@@ -118,24 +118,7 @@ def create_challenge():
                 'num_words': num_words
             }
         }), 201
-        #==============排行榜相关逻辑=============
-         # 初始化排行榜数据
-        room_id = data['room_id']
-        users = RoomMember.get_all_members(room_id)
-        for user in users:
-            current_score = get_user_score(room_id, user['user_id'])
-            if current_score == 0:
-                update_score(room_id, user['user_id'], 0)
-
-        return jsonify({
-            'code': 201,
-            'message': '挑战创建成功',
-            'data': {
-                'challenge_ids': challenge_ids,
-                'num_words': num_words
-            }
-        }), 201
-
+        
     except Exception as e:
         logger.error("全局异常: %s", str(e), exc_info=True)
         return jsonify({'code': 500, 'message': '服务器内部错误'}), 500
@@ -177,7 +160,7 @@ def send_word_and_answer(room_id, challenge_ids, index=0):
             logger.info(f"[定时器] 广播单词: {word['word']}，房间ID: {room_id}")
 
             # 设置单词展示时间
-            socketio.sleep(30)
+            socketio.sleep(15)
             print(f"DEBUG: socketio 单词展示恢复 事件在房间 {room_id}")  # 确认发送  
             send_answer(room_id, challenge_ids, index)
             

@@ -164,3 +164,67 @@ def change_password():
     except Exception as e:
         logger.error(f"Password change failed: {str(e)}", exc_info=True)
         return jsonify({'code': 500, 'message': 'Internal server error'}), 500
+    
+@auth_bp.route('/update', methods=['PUT'])
+def update_user_info():
+    """更新用户信息"""
+    try:
+        if 'user_id' not in session:
+            return jsonify({'code': 401, 'message': 'Not logged in'}), 401
+
+        data = request.get_json()
+        if not data:
+            return jsonify({'code': 400, 'message': 'No data provided'}), 400
+
+        user_id = session['user_id']
+        updates = {}
+
+        # 检查并准备更新字段
+        if 'email' in data and data['email']:
+            # 验证新邮箱是否已被其他用户使用
+            existing_user = User.get_user_by_email(data['email'])
+            if existing_user and existing_user['id'] != user_id:
+                return jsonify({'code': 409, 'message': 'Email already in use'}), 409
+            updates['email'] = data['email']
+
+        if 'password' in data and data['password']:
+            # 验证密码长度
+            if len(data['password']) < 6:
+                return jsonify({'code': 400, 'message': 'Password must be at least 6 characters'}), 400
+            updates['password_hash'] = generate_password_hash(data['password'])
+
+        if 'nickname' in data and data['nickname']:
+            updates['nickname'] = data['nickname']
+
+        if 'avatar' in data:
+            updates['avatar'] = data['avatar'] if data['avatar'] else None
+
+        # 如果没有有效的更新字段
+        if not updates:
+            return jsonify({'code': 400, 'message': 'No valid fields to update'}), 400
+
+        # 执行更新
+        success = User.update_user(user_id, updates)
+        if not success:
+            return jsonify({'code': 500, 'message': 'Failed to update user'}), 500
+
+        # 如果邮箱被更新，更新会话中的邮箱
+        if 'email' in updates:
+            session['user_email'] = updates['email']
+
+        # 获取更新后的用户信息返回给客户端
+        updated_user = User.get_user_by_id(user_id)
+        return jsonify({
+            'code': 200,
+            'message': 'User updated successfully',
+            'data': {
+                'user_id': updated_user['id'],
+                'email': updated_user['email'],
+                'nickname': updated_user['nickname'],
+                'avatar': updated_user.get('avatar')
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Failed to update user: {str(e)}", exc_info=True)
+        return jsonify({'code': 500, 'message': 'Internal server error'}), 500

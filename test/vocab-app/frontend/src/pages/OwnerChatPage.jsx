@@ -105,7 +105,7 @@ const OwnerChatPage = () => {
         challengeId: data.challenge_id,
         meaning: data.word_meaning,
       });
-      setCountdown(30);
+      setCountdown(15);
     });
 
     socketInstance.on('reveal_answer', (data) => {
@@ -219,7 +219,7 @@ const OwnerChatPage = () => {
 const handleKickUser = (userId) => {
   if (!socket || !socket.connected || !roomInfo) return;
 
-  socket.emit('kick_user', {
+  socket.emit('kick_member', {
     room_id: roomInfo.room_id,
     target_user_id: userId,
     kicker_id: userData.user_id
@@ -241,7 +241,6 @@ const handleKickUser = (userId) => {
         onLeaveRoom={handleLeaveRoom}
         onShowRanking={() => setShowRanking(!showRanking)}
         onKickUser={handleKickUser}
-        onEditProfile={() => navigate('/profile/edit')}
         showRoomControls={true}
         showKickButton={true}
         rankings={rankings}
