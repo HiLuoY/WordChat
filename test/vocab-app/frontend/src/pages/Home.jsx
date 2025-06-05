@@ -249,7 +249,7 @@ const Home = () => {
     <div className="page-container">
       {/* 导航栏 */}
       <nav className="app-navbar">
-        <div className="nav-brand">词汇竞技场</div>
+        <div className="nav-brand">Vocabulary Arena —— 词汇竞技场</div>
         <div className="nav-links">
           <Link to="/home" className="nav-link active">首页</Link>
           <div className="user-menu-container">
