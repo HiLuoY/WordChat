@@ -160,7 +160,7 @@ def send_word_and_answer(room_id, challenge_ids, index=0):
             logger.info(f"[定时器] 广播单词: {word['word']}，房间ID: {room_id}")
 
             # 设置单词展示时间
-            socketio.sleep(30)
+            socketio.sleep(15)
             print(f"DEBUG: socketio 单词展示恢复 事件在房间 {room_id}")  # 确认发送  
             send_answer(room_id, challenge_ids, index)
             
